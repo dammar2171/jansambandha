@@ -6,9 +6,17 @@ import authMiddleware from '../middlewares/authenticate.js';
 import {
   createOfficialUserSchema,
   updateAccountStatusSchema,
+  officialLoginSchema,
 } from '../libs/schemas/user.schema.js';
 
 const router = express.Router();
+
+// Public: official / contractor login
+router.post(
+  '/login',
+  validate(officialLoginSchema),
+  userControllers.loginOfficial,
+);
 
 router.get('/', authMiddleware.protect, userControllers.listUsers);
 

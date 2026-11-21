@@ -3,6 +3,7 @@ import Ward from '../models/Ward.js';
 import Department from '../models/Department.js';
 import bcrypt from 'bcrypt';
 import { AppError } from '../utils/AppError.js';
+import { generateAccessToken } from '../utils/jwt.js';
 import {
   ROLES,
   ACCOUNT_STATUS,
@@ -153,4 +154,46 @@ const updateUserStatus = async (currentUser, targetUserId, accountStatus) => {
   return user;
 };
 
-export default { listUsers, createOfficialUser, updateUserStatus };
+const loginOfficial = async (input) => {
+  const { email, password } = input;
+
+  // 1. Find the user. passwordHash is hidden by default, so select it.
+  const user = await User.findOne({ email }).select('+passwordHash');
+  if (!user) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  // 2. Check the password
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  // 3. This login is for officials and contractors, not citizens
+  if (user.role === ROLES.CITIZEN) {
+    throw new AppError('This login is for officials only', 403);
+  }
+
+  // 4. Account must be active
+  if (!user.isActive()) {
+    throw new AppError('Account is not active', 403);
+  }
+
+  // 5. Issue a token
+  const token = generateAccessToken({
+    id: user._id.toString(),
+    role: user.role,
+  });
+
+  // 6. Return a safe user (no password hash) and the token
+  const safeUser = user.toObject();
+  delete safeUser.passwordHash;
+  return { user: safeUser, token };
+};
+
+export default {
+  listUsers,
+  createOfficialUser,
+  updateUserStatus,
+  loginOfficial,
+};

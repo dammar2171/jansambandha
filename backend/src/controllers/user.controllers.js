@@ -30,4 +30,15 @@ const updateUserStatus = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Account status updated successfully', data));
 });
 
-export default { listUsers, createOfficialUser, updateUserStatus };
+const loginOfficial = asyncHandler(async (req, res) => {
+  const data = await userServices.loginOfficial(req.body);
+
+  return res.status(200).json(new ApiResponse(200, 'Login successful', data));
+});
+
+export default {
+  listUsers,
+  createOfficialUser,
+  updateUserStatus,
+  loginOfficial,
+};
