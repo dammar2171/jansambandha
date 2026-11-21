@@ -1,10 +1,13 @@
 import Project from '../models/Project.js';
 import ProjectProposal from '../models/ProjectProposal.js';
+import ProjectFeedback from '../models/ProjectFeedback.js';
 import { AppError } from '../utils/AppError.js';
 import {
   ROLES,
   PROPOSAL_STATUS,
   PROJECT_VISIBILITY,
+  FEEDBACK_REACTION,
+  MODERATION_STATUS,
 } from '../constants/index.js';
 
 // Which projects a user may see:
@@ -143,6 +146,99 @@ const getProjectReport = async (user, id) => {
   return project;
 };
 
+// Citizens may only react to / comment on public projects
+const assertPublicProject = async (projectId) => {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+  if (project.visibility !== PROJECT_VISIBILITY.PUBLIC) {
+    throw new AppError('This project is not open for public feedback', 403);
+  }
+  return project;
+};
+
+const setReaction = async (user, projectId, reaction) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can react to projects', 403);
+  }
+  await assertPublicProject(projectId);
+
+  // One feedback doc per user/project; create it or change the reaction
+  return ProjectFeedback.findOneAndUpdate(
+    { projectId, userId: user._id },
+    { $set: { reaction } },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
+  );
+};
+
+const removeReaction = async (user, projectId) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can react to projects', 403);
+  }
+
+  const feedback = await ProjectFeedback.findOne({
+    projectId,
+    userId: user._id,
+  });
+  if (!feedback || !feedback.reaction) {
+    throw new AppError('No reaction to remove', 404);
+  }
+
+  // Keep the document if a comment remains; otherwise remove it entirely
+  if (feedback.comment) {
+    feedback.reaction = null;
+    await feedback.save();
+    return feedback;
+  }
+  await feedback.deleteOne();
+  return null;
+};
+
+const addComment = async (user, projectId, comment) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can comment on projects', 403);
+  }
+  await assertPublicProject(projectId);
+
+  return ProjectFeedback.findOneAndUpdate(
+    { projectId, userId: user._id },
+    { $set: { comment } },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
+  );
+};
+
+const getProjectFeedback = async (user, projectId) => {
+  // Anyone allowed to view the project can see its feedback
+  const project = await Project.findOne({
+    _id: projectId,
+    ...buildVisibilityFilter(user),
+  });
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  const [likes, dislikes, comments] = await Promise.all([
+    ProjectFeedback.countDocuments({
+      projectId,
+      reaction: FEEDBACK_REACTION.LIKE,
+    }),
+    ProjectFeedback.countDocuments({
+      projectId,
+      reaction: FEEDBACK_REACTION.DISLIKE,
+    }),
+    ProjectFeedback.find({
+      projectId,
+      moderationStatus: MODERATION_STATUS.VISIBLE,
+      comment: { $ne: null },
+    })
+      .select('userId comment createdAt')
+      .sort({ createdAt: -1 }),
+  ]);
+
+  return { reactions: { likes, dislikes }, comments };
+};
+
 export default {
   listProjects,
   listPublicProjects,
@@ -150,4 +246,8 @@ export default {
   createProject,
   updateProject,
   getProjectReport,
+  setReaction,
+  removeReaction,
+  addComment,
+  getProjectFeedback,
 };

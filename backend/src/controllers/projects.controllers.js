@@ -81,6 +81,43 @@ const downloadProjectReport = asyncHandler(async (req, res) => {
   return res.status(200).send(report);
 });
 
+const setReaction = asyncHandler(async (req, res) => {
+  const data = await projectServices.setReaction(
+    req.user,
+    req.params.id,
+    req.body.reaction,
+  );
+
+  return res.status(200).json(new ApiResponse(200, 'Reaction saved', data));
+});
+
+const removeReaction = asyncHandler(async (req, res) => {
+  await projectServices.removeReaction(req.user, req.params.id);
+
+  return res.status(200).json(new ApiResponse(200, 'Reaction removed'));
+});
+
+const addComment = asyncHandler(async (req, res) => {
+  const data = await projectServices.addComment(
+    req.user,
+    req.params.id,
+    req.body.comment,
+  );
+
+  return res.status(201).json(new ApiResponse(201, 'Comment added', data));
+});
+
+const getProjectFeedback = asyncHandler(async (req, res) => {
+  const data = await projectServices.getProjectFeedback(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Project feedback fetched', data));
+});
+
 export default {
   listProjects,
   listPublicProjects,
@@ -88,4 +125,8 @@ export default {
   getProjectById,
   updateProject,
   downloadProjectReport,
+  setReaction,
+  removeReaction,
+  addComment,
+  getProjectFeedback,
 };
