@@ -43,4 +43,34 @@ const listProjectProposals = async (user, query) => {
   return ProjectProposal.find(filter).sort({ createdAt: -1 });
 };
 
-export default { createProjectProposal, listProjectProposals };
+const getProjectProposalById = async (user, id) => {
+  // 1. Only reviewing roles can view proposals
+  if (!PROPOSAL_VIEWER_ROLES.includes(user.role)) {
+    throw new AppError('You are not allowed to view project proposals', 403);
+  }
+
+  // 2. Find the proposal
+  const proposal = await ProjectProposal.findById(id);
+  if (!proposal) {
+    throw new AppError('Project proposal not found', 404);
+  }
+
+  // 3. Ward chairpersons can only view proposals in their own ward
+  if (
+    user.role === ROLES.WARD_CHAIR &&
+    String(proposal.wardId) !== String(user.wardId)
+  ) {
+    throw new AppError(
+      'You are not allowed to view this project proposal',
+      403,
+    );
+  }
+
+  return proposal;
+};
+
+export default {
+  createProjectProposal,
+  listProjectProposals,
+  getProjectProposalById,
+};
