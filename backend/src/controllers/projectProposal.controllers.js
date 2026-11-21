@@ -59,10 +59,54 @@ const submitProjectProposal = asyncHandler(async (req, res) => {
     );
 });
 
+const addReview = asyncHandler(async (req, res) => {
+  const data = await projectProposalServices.addReview(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, 'Review note added successfully', data));
+});
+
+const recordAdministrativeDecision = asyncHandler(async (req, res) => {
+  const data = await projectProposalServices.recordAdministrativeDecision(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        'Administrative decision recorded successfully',
+        data,
+      ),
+    );
+});
+
+const getProposalHistory = asyncHandler(async (req, res) => {
+  const data = await projectProposalServices.getProposalHistory(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Proposal history fetched successfully', data));
+});
+
 export default {
   createProjectProposal,
   listProjectProposals,
   getProjectProposalById,
   updateProjectProposal,
   submitProjectProposal,
+  addReview,
+  recordAdministrativeDecision,
+  getProposalHistory,
 };

@@ -7,6 +7,10 @@ import {
   createProjectProposalSchema,
   updateProjectProposalSchema,
 } from '../libs/schemas/projectProposal.schema.js';
+import {
+  addReviewSchema,
+  administrativeDecisionSchema,
+} from '../libs/schemas/projectApprovals.schema.js';
 
 const router = express.Router();
 
@@ -46,6 +50,29 @@ router.post(
   authMiddleware.protect,
   validateObjectId('id'),
   projectProposalControllers.submitProjectProposal,
+);
+
+router.post(
+  '/:id/reviews',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(addReviewSchema),
+  projectProposalControllers.addReview,
+);
+
+router.post(
+  '/:id/administrative-decision',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(administrativeDecisionSchema),
+  projectProposalControllers.recordAdministrativeDecision,
+);
+
+router.get(
+  '/:id/history',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectProposalControllers.getProposalHistory,
 );
 
 export default router;
