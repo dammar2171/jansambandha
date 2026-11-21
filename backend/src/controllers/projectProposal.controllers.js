@@ -23,4 +23,19 @@ const listProjectProposals = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Project proposals fetched successfully', data));
 });
 
-export default { createProjectProposal, listProjectProposals };
+const getProjectProposalById = asyncHandler(async (req, res) => {
+  const data = await projectProposalServices.getProjectProposalById(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Project proposal fetched successfully', data));
+});
+
+export default {
+  createProjectProposal,
+  listProjectProposals,
+  getProjectProposalById,
+};
