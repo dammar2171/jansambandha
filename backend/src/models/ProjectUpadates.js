@@ -1,13 +1,7 @@
 
 import mongoose from "mongoose";
-
-// Progress report statuses
-export const UPDATE_STATUS = Object.freeze({
-  SUBMITTED: "SUBMITTED",
-  NEEDS_CORRECTION: "NEEDS_CORRECTION",
-  VERIFIED: "VERIFIED",
-  REJECTED: "REJECTED",
-});
+import { UPDATE_STATUS } from "../constants/index.js";
+export { UPDATE_STATUS };
 
 const projectUpdateSchema = new mongoose.Schema(
   {

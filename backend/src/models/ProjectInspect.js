@@ -1,13 +1,7 @@
 
 import mongoose from "mongoose";
-
-// Inspection quality results
-export const QUALITY_STATUS = Object.freeze({
-  PASS: "PASS",
-  NEEDS_IMPROVEMENT: "NEEDS_IMPROVEMENT",
-  FAIL: "FAIL",
-  NOT_ASSESSED: "NOT_ASSESSED",
-});
+import { QUALITY_STATUS } from "../constants/index.js";
+export { QUALITY_STATUS };
 
 const projectInspectionSchema = new mongoose.Schema(
   {

@@ -1,24 +1,23 @@
 // server/src/models/user.model.js
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
-import { ACCOUNT_STATUS, ROLES } from "../helper/constants.js";
-
+import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import { ACCOUNT_STATUS, ROLES } from '../constants/index.js';
 
 const userSchema = new mongoose.Schema(
   {
     fullName: {
       type: String,
-      required: [true, "Full name is required"],
+      required: [true, 'Full name is required'],
       trim: true,
       maxlength: 100,
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Invalid email address"],
+      match: [/^\S+@\S+\.\S+$/, 'Invalid email address'],
     },
     // Never returned by default. Use .select("+passwordHash") on login only.
     passwordHash: {
@@ -35,20 +34,20 @@ const userSchema = new mongoose.Schema(
     },
     municipalityId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Municipality",
+      ref: 'Municipality',
       required: true,
       index: true,
     },
     // Required for CITIZEN and WARD_CHAIR
     wardId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Ward",
+      ref: 'Ward',
       index: true,
     },
     // Required for DEPARTMENT users
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
+      ref: 'Department',
       index: true,
     },
     accountStatus: {
@@ -60,7 +59,7 @@ const userSchema = new mongoose.Schema(
     // Official who created the account. Empty only for self-registered citizens.
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
   },
   {
@@ -72,24 +71,26 @@ const userSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
 // Role-based scope rules (backend-enforced data integrity)
-userSchema.pre("validate", function (next) {
-  if (
-    [ROLES.CITIZEN, ROLES.WARD_CHAIR].includes(this.role) &&
-    !this.wardId
-  ) {
-    return next(new Error("wardId is required for CITIZEN and WARD_CHAIR"));
+userSchema.pre('validate', function () {
+  if ([ROLES.CITIZEN, ROLES.WARD_CHAIR].includes(this.role) && !this.wardId) {
+    this.invalidate('wardId', 'wardId is required for CITIZEN and WARD_CHAIR');
   }
   if (this.role === ROLES.DEPARTMENT && !this.departmentId) {
-    return next(new Error("departmentId is required for DEPARTMENT users"));
+    this.invalidate(
+      'departmentId',
+      'departmentId is required for DEPARTMENT users',
+    );
   }
   if (this.role !== ROLES.CITIZEN && !this.createdBy) {
-    return next(new Error("createdBy is required for non-citizen accounts"));
+    this.invalidate(
+      'createdBy',
+      'createdBy is required for non-citizen accounts',
+    );
   }
-  next();
 });
 
 // Helpers
@@ -106,5 +107,5 @@ userSchema.methods.isActive = function () {
   return this.accountStatus === ACCOUNT_STATUS.ACTIVE;
 };
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model('User', userSchema);
 export default User;

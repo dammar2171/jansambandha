@@ -1,15 +1,7 @@
 
 import mongoose from "mongoose";
-
-// Complaint lifecycle statuses
-export const COMPLAINT_STATUS = Object.freeze({
-  SUBMITTED: "SUBMITTED",
-  UNDER_REVIEW: "UNDER_REVIEW",
-  ASSIGNED: "ASSIGNED",
-  IN_PROGRESS: "IN_PROGRESS",
-  RESOLVED: "RESOLVED",
-  CLOSED: "CLOSED",
-});
+import { COMPLAINT_STATUS } from "../constants/index.js";
+export { COMPLAINT_STATUS };
 
 // Embedded schema for official responses
 const responseSchema = new mongoose.Schema(

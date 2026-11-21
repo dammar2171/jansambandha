@@ -1,21 +1,7 @@
 
 import mongoose from "mongoose";
-
-// Project lifecycle statuses
-export const PROJECT_STATUS = Object.freeze({
-  APPROVED: "APPROVED",
-  ASSIGNED: "ASSIGNED",
-  ONGOING: "ONGOING",
-  DELAYED: "DELAYED",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-});
-
-// Project visibility
-export const PROJECT_VISIBILITY = Object.freeze({
-  PUBLIC: "PUBLIC",
-  INTERNAL: "INTERNAL",
-});
+import { PROJECT_STATUS, PROJECT_VISIBILITY } from "../constants/index.js";
+export { PROJECT_STATUS, PROJECT_VISIBILITY };
 
 const projectSchema = new mongoose.Schema(
   {
