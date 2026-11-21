@@ -3,7 +3,14 @@ import projectProposalControllers from '../controllers/projectProposal.controlle
 import validate from '../middlewares/validate.js';
 import authMiddleware from '../middlewares/authenticate.js';
 import validateObjectId from '../middlewares/validateObjectId.js';
-import { createProjectProposalSchema } from '../libs/schemas/projectProposal.schema.js';
+import {
+  createProjectProposalSchema,
+  updateProjectProposalSchema,
+} from '../libs/schemas/projectProposal.schema.js';
+import {
+  addReviewSchema,
+  administrativeDecisionSchema,
+} from '../libs/schemas/projectApprovals.schema.js';
 
 const router = express.Router();
 
@@ -28,6 +35,44 @@ router.get(
   authMiddleware.protect,
   validateObjectId('id'),
   projectProposalControllers.getProjectProposalById,
+);
+
+router.patch(
+  '/:id',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(updateProjectProposalSchema),
+  projectProposalControllers.updateProjectProposal,
+);
+
+router.post(
+  '/:id/submit',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectProposalControllers.submitProjectProposal,
+);
+
+router.post(
+  '/:id/reviews',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(addReviewSchema),
+  projectProposalControllers.addReview,
+);
+
+router.post(
+  '/:id/administrative-decision',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(administrativeDecisionSchema),
+  projectProposalControllers.recordAdministrativeDecision,
+);
+
+router.get(
+  '/:id/history',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectProposalControllers.getProposalHistory,
 );
 
 export default router;
