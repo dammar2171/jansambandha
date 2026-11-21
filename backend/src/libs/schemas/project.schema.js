@@ -1,65 +1,75 @@
+import { z } from 'zod';
 
-import { z } from "zod";
-
-const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/);
+const objectIdSchema = z
+  .string()
+  .regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectId');
 
 export const projectStatusSchema = z.enum([
-  "APPROVED",
-  "ASSIGNED",
-  "ONGOING",
-  "DELAYED",
-  "COMPLETED",
-  "CANCELLED",
+  'APPROVED',
+  'ASSIGNED',
+  'ONGOING',
+  'DELAYED',
+  'COMPLETED',
+  'CANCELLED',
 ]);
 
-export const projectVisibilitySchema = z.enum([
-  "PUBLIC",
-  "INTERNAL",
-]);
+export const projectVisibilitySchema = z.enum(['PUBLIC', 'INTERNAL']);
 
 const dateSchema = z.coerce.date();
 
-export const createProjectSchema = z.object({
-  proposalId: objectIdSchema.nullable().optional(),
+// Base fields. municipalityId is derived from the creator, never the client.
+const projectBaseSchema = z.object({
+  proposalId: objectIdSchema.optional(),
 
-  title: z.string().trim().min(3).max(150),
+  title: z.string().trim().min(3).max(150).optional(),
 
-  description: z.string().trim().min(10),
+  description: z.string().trim().min(10).optional(),
 
-  wardId: objectIdSchema,
+  wardId: objectIdSchema.optional(),
 
-  municipalityId: objectIdSchema,
-
-  fiscalYear: z.string().trim().min(4),
+  fiscalYear: z.string().trim().min(4).optional(),
 
   approvedBudget: z.number().min(0),
 
-  contractorId: objectIdSchema.nullable().optional(),
+  contractorId: objectIdSchema.optional(),
 
-  departmentId: objectIdSchema.nullable().optional(),
+  departmentId: objectIdSchema.optional(),
 
-  startDate: dateSchema.nullable().optional(),
+  startDate: dateSchema.optional(),
 
-  endDate: dateSchema.nullable().optional(),
+  endDate: dateSchema.optional(),
 
-  visibility: projectVisibilitySchema.default("PUBLIC"),
-}).superRefine((data, ctx) => {
-  if (
-    data.startDate &&
-    data.endDate &&
-    data.endDate < data.startDate
-  ) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["endDate"],
-      message: "End date cannot be before start date",
-    });
-  }
+  visibility: projectVisibilitySchema.optional(),
 });
 
-// Update permitted project information
-export const updateProjectSchema = createProjectSchema
-  .omit({ proposalId: true, municipalityId: true, wardId: true })
+export const createProjectSchema = projectBaseSchema.superRefine(
+  (data, ctx) => {
+    // Without a proposal, the core fields must be provided directly
+    if (!data.proposalId) {
+      for (const field of ['title', 'description', 'wardId', 'fiscalYear']) {
+        if (!data[field]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [field],
+            message: `${field} is required when no proposalId is given`,
+          });
+        }
+      }
+    }
+
+    if (data.startDate && data.endDate && data.endDate < data.startDate) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endDate'],
+        message: 'End date cannot be before start date',
+      });
+    }
+  },
+);
+
+// Update permitted project info (derived from the base object, not the refined one)
+export const updateProjectSchema = projectBaseSchema
+  .omit({ proposalId: true })
   .partial();
 
 // Separate status update
