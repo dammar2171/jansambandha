@@ -51,8 +51,7 @@ export const createOfficialUserSchema = z
 
     role: userRoleSchema.exclude([ROLES.CITIZEN]),
 
-    municipalityId: objectIdSchema,
-
+    // municipalityId is taken from the authenticated creator, not the client
     wardId: objectIdSchema.optional(),
 
     departmentId: objectIdSchema.optional(),
