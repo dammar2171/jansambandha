@@ -7,7 +7,7 @@ import { createProjectSchema } from '../libs/schemas/project.schema.js';
 
 const router = express.Router();
 
-// Any authenticated user; results are visibility-filtered in the service
+// Any authenticated users can see
 router.get('/', authMiddleware.protect, projectControllers.listProjects);
 
 // CAO / General Admin only
@@ -17,6 +17,9 @@ router.post(
   validate(createProjectSchema),
   projectControllers.createProject,
 );
+
+// Public: anyone (no login) can see only PUBLIC visibility projects
+router.get('/public', projectControllers.listPublicProjects);
 
 // Any authenticated user; access is visibility/assignment-filtered in the service
 router.get(

@@ -27,6 +27,12 @@ const listProjects = async (user) => {
   return Project.find(buildVisibilityFilter(user)).sort({ createdAt: -1 });
 };
 
+const listPublicProjects = async () => {
+  return Project.find({ visibility: PROJECT_VISIBILITY.PUBLIC }).sort({
+    createdAt: -1,
+  });
+};
+
 const getProjectById = async (user, id) => {
   // Reusing the visibility filter means inaccessible projects simply read as "not found"
   const project = await Project.findOne({
@@ -82,4 +88,4 @@ const createProject = async (user, input) => {
   return Project.create(data);
 };
 
-export default { listProjects, getProjectById, createProject };
+export default { listProjects, listPublicProjects, getProjectById, createProject };

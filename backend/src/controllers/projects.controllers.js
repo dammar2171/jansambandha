@@ -10,6 +10,14 @@ const listProjects = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Projects fetched successfully', data));
 });
 
+const listPublicProjects = asyncHandler(async (req, res) => {
+  const data = await projectServices.listPublicProjects();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Public projects fetched successfully', data));
+});
+
 const createProject = asyncHandler(async (req, res) => {
   const data = await projectServices.createProject(req.user, req.body);
 
@@ -26,4 +34,9 @@ const getProjectById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Project fetched successfully', data));
 });
 
-export default { listProjects, createProject, getProjectById };
+export default {
+  listProjects,
+  listPublicProjects,
+  createProject,
+  getProjectById,
+};
