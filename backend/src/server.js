@@ -6,6 +6,8 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
 import projectProposalRoutes from './routes/projectProposalRoutes.js';
 import userRoutes from './routes/user.routes.js';
+import wardRoutes from './routes/ward.routes.js';
+import departmentRoutes from './routes/department.routes.js';
 
 import logger from './middlewares/loggerMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -21,8 +23,8 @@ app.use(logger);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/project-proposals', projectProposalRoutes);
 app.use('/api/v1/users', userRoutes);
-// TODO: incomplete — app.use() needs a router/handler; left here crashes startup
-// app.use('/api/v1/administration');
+app.use('/api/v1/wards', wardRoutes);
+app.use('/api/v1/departments', departmentRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
