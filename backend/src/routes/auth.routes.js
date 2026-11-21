@@ -1,6 +1,7 @@
 import express from 'express';
 import authControllers from '../controllers/auth.controllers.js';
 import validate from '../middlewares/validate.js';
+import authMiddleware from '../middlewares/authenticate.js';
 import {
   citizenRegisterSchema,
   citizenLoginSchema,
@@ -19,5 +20,7 @@ router.post(
   validate(citizenLoginSchema),
   authControllers.loginCitizen,
 );
+
+router.get('/me', authMiddleware.protect, authControllers.getCurrentUser);
 
 export default router;

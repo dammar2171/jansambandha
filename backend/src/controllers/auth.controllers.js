@@ -14,4 +14,10 @@ const loginCitizen = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, 'Login successful', data));
 });
 
-export default { registerCitizen, loginCitizen };
+const getCurrentUser = asyncHandler(async (req, res) => {
+  res
+    .status(200)
+    .json(new ApiResponse(200, 'Current user retrieved successfully', req.user));
+});
+
+export default { registerCitizen, loginCitizen, getCurrentUser };
