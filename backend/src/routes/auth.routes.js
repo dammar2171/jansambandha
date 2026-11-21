@@ -5,6 +5,7 @@ import authMiddleware from '../middlewares/authenticate.js';
 import {
   citizenRegisterSchema,
   citizenLoginSchema,
+  changePasswordSchema,
 } from '../libs/schemas/user.schema.js';
 
 const router = express.Router();
@@ -22,5 +23,12 @@ router.post(
 );
 
 router.get('/me', authMiddleware.protect, authControllers.getCurrentUser);
+
+router.post(
+  '/change-password',
+  authMiddleware.protect,
+  validate(changePasswordSchema),
+  authControllers.changePassword,
+);
 
 export default router;

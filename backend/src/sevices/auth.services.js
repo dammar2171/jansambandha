@@ -91,4 +91,24 @@ const loginCitizen = async (input) => {
   return { user: safeUser, token };
 };
 
-export default { registerCitizen, loginCitizen };
+const changePassword = async (userId, input) => {
+  const { currentPassword, newPassword } = input;
+
+  // 1. Load the user with the password hash (hidden by default)
+  const user = await User.findById(userId).select('+passwordHash');
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // 2. Verify the current password
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new AppError('Current password is incorrect', 401);
+  }
+
+  // 3. Hash and save the new password
+  user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await user.save();
+};
+
+export default { registerCitizen, loginCitizen, changePassword };

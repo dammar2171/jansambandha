@@ -29,6 +29,13 @@ export const citizenLoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// Change password (authenticated user)
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+
+  newPassword: z.string().min(8).max(72),
+});
+
 // Official account creation
 export const createOfficialUserSchema = z
   .object({
