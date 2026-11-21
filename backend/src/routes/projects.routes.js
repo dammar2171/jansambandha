@@ -1,9 +1,12 @@
-import express from 'express';
+﻿import express from 'express';
 import projectControllers from '../controllers/projects.controllers.js';
 import validate from '../middlewares/validate.js';
 import authMiddleware from '../middlewares/authenticate.js';
 import validateObjectId from '../middlewares/validateObjectId.js';
-import { createProjectSchema } from '../libs/schemas/project.schema.js';
+import {
+  createProjectSchema,
+  updateProjectSchema,
+} from '../libs/schemas/project.schema.js';
 
 const router = express.Router();
 
@@ -27,6 +30,23 @@ router.get(
   authMiddleware.protect,
   validateObjectId('id'),
   projectControllers.getProjectById,
+);
+
+// CAO only: edit permitted project fields
+router.patch(
+  '/:id',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(updateProjectSchema),
+  projectControllers.updateProject,
+);
+
+// Download a project summary report
+router.get(
+  '/:id/download',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectControllers.downloadProjectReport,
 );
 
 export default router;

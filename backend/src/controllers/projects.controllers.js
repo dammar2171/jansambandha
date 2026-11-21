@@ -34,9 +34,58 @@ const getProjectById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Project fetched successfully', data));
 });
 
+const updateProject = asyncHandler(async (req, res) => {
+  const data = await projectServices.updateProject(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Project updated successfully', data));
+});
+
+const buildProjectReport = (p) => {
+  return [
+    'PROJECT SUMMARY REPORT',
+    '======================',
+    `ID:              ${p._id}`,
+    `Title:           ${p.title}`,
+    `Description:     ${p.description}`,
+    `Status:          ${p.status}`,
+    `Visibility:      ${p.visibility}`,
+    `Fiscal Year:     ${p.fiscalYear}`,
+    `Approved Budget: ${p.approvedBudget}`,
+    `Ward:            ${p.wardId}`,
+    `Department:      ${p.departmentId}`,
+    `Contractor:      ${p.contractorId ?? 'Not assigned'}`,
+    `Start Date:      ${p.startDate ?? 'Not set'}`,
+    `End Date:        ${p.endDate ?? 'Not set'}`,
+    `Created At:      ${p.createdAt}`,
+  ].join('\n');
+};
+
+const downloadProjectReport = asyncHandler(async (req, res) => {
+  const project = await projectServices.getProjectReport(
+    req.user,
+    req.params.id,
+  );
+  const report = buildProjectReport(project);
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="project-${project._id}.txt"`,
+  );
+  return res.status(200).send(report);
+});
+
 export default {
   listProjects,
   listPublicProjects,
   createProject,
   getProjectById,
+  updateProject,
+  downloadProjectReport,
 };

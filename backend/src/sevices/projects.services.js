@@ -1,7 +1,11 @@
 import Project from '../models/Project.js';
 import ProjectProposal from '../models/ProjectProposal.js';
 import { AppError } from '../utils/AppError.js';
-import { ROLES, PROPOSAL_STATUS, PROJECT_VISIBILITY } from '../constants/index.js';
+import {
+  ROLES,
+  PROPOSAL_STATUS,
+  PROJECT_VISIBILITY,
+} from '../constants/index.js';
 
 // Which projects a user may see:
 //   - everyone sees PUBLIC projects
@@ -88,4 +92,62 @@ const createProject = async (user, input) => {
   return Project.create(data);
 };
 
-export default { listProjects, listPublicProjects, getProjectById, createProject };
+const updateProject = async (user, id, updates) => {
+  // 1. Only CAO can edit projects
+  if (user.role !== ROLES.CAO) {
+    throw new AppError('You are not allowed to edit projects', 403);
+  }
+
+  // 2. Find the project
+  const project = await Project.findById(id);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+
+  // 3. Apply the validated updates and save
+  Object.assign(project, updates);
+  await project.save();
+  return project;
+};
+
+// Who may download a project report:
+//   - CAO / General Admin: any project
+//   - Ward Chair: their ward; Department: their department; Contractor: assigned project
+const canDownloadProject = (user, project) => {
+  switch (user.role) {
+    case ROLES.CAO:
+    case ROLES.GENERAL_ADMIN:
+      return true;
+    case ROLES.WARD_CHAIR:
+      return String(project.wardId) === String(user.wardId);
+    case ROLES.DEPARTMENT:
+      return String(project.departmentId) === String(user.departmentId);
+    case ROLES.CONTRACTOR:
+      return String(project.contractorId) === String(user._id);
+    default:
+      return false;
+  }
+};
+
+const getProjectReport = async (user, id) => {
+  const project = await Project.findById(id);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+  if (!canDownloadProject(user, project)) {
+    throw new AppError(
+      'You are not allowed to download this project report',
+      403,
+    );
+  }
+  return project;
+};
+
+export default {
+  listProjects,
+  listPublicProjects,
+  getProjectById,
+  createProject,
+  updateProject,
+  getProjectReport,
+};
