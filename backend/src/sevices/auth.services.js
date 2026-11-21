@@ -3,9 +3,7 @@ import bcrypt from 'bcrypt';
 import Ward from '../models/Ward.js';
 import { AppError } from '../utils/AppError.js';
 import { generateAccessToken } from '../utils/jwt.js';
-import { ROLES, ACCOUNT_STATUS } from '../helper/constants.js';
-
-const SALT_ROUNDS = 12;
+import { ROLES, ACCOUNT_STATUS, SALT_ROUNDS } from '../constants/index.js';
 
 const registerCitizen = async (input) => {
   const { fullName, email, password, municipalityId, wardId } = input;

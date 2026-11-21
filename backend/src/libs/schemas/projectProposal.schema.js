@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MONGODB_OBJECT_ID_REGEX } from "../../constants/index.js";
 
 export const createProjectProposalSchema = z.object({
   title: z
@@ -14,7 +15,7 @@ export const createProjectProposalSchema = z.object({
 
   wardId: z
     .string()
-    .regex(/^[0-9a-fA-F]{24}$/, "Invalid ward ID"),
+    .regex(MONGODB_OBJECT_ID_REGEX, "Invalid ward ID"),
 
   category: z
     .string()
@@ -43,6 +44,6 @@ export const createProjectProposalSchema = z.object({
 
   proposedBy: z
     .string()
-    .regex(/^[0-9a-fA-F]{24}$/, "Invalid user ID")
+    .regex(MONGODB_OBJECT_ID_REGEX, "Invalid user ID")
     .optional(),
 });

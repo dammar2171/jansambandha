@@ -1,7 +1,7 @@
 // server/src/models/user.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import { ACCOUNT_STATUS, ROLES } from "../helper/constants.js";
+import { ACCOUNT_STATUS, ROLES } from "../constants/index.js";
 
 
 const userSchema = new mongoose.Schema(

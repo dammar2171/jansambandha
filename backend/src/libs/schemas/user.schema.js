@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { ACCOUNT_STATUS, ROLES } from '../../helper/constants.js';
+import {
+  ACCOUNT_STATUS,
+  MONGODB_OBJECT_ID_REGEX,
+  ROLES,
+} from '../../constants/index.js';
 
 export const userRoleSchema = z.enum(Object.values(ROLES));
 
@@ -7,7 +11,7 @@ export const accountStatusSchema = z.enum(Object.values(ACCOUNT_STATUS));
 
 const objectIdSchema = z
   .string()
-  .regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId');
+  .regex(MONGODB_OBJECT_ID_REGEX, 'Invalid MongoDB ObjectId');
 
 // Public citizen registration
 export const citizenRegisterSchema = z.object({
