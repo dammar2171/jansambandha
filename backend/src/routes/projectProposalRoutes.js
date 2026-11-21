@@ -3,7 +3,10 @@ import projectProposalControllers from '../controllers/projectProposal.controlle
 import validate from '../middlewares/validate.js';
 import authMiddleware from '../middlewares/authenticate.js';
 import validateObjectId from '../middlewares/validateObjectId.js';
-import { createProjectProposalSchema } from '../libs/schemas/projectProposal.schema.js';
+import {
+  createProjectProposalSchema,
+  updateProjectProposalSchema,
+} from '../libs/schemas/projectProposal.schema.js';
 
 const router = express.Router();
 
@@ -28,6 +31,21 @@ router.get(
   authMiddleware.protect,
   validateObjectId('id'),
   projectProposalControllers.getProjectProposalById,
+);
+
+router.patch(
+  '/:id',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(updateProjectProposalSchema),
+  projectProposalControllers.updateProjectProposal,
+);
+
+router.post(
+  '/:id/submit',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectProposalControllers.submitProjectProposal,
 );
 
 export default router;

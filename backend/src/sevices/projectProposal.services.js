@@ -69,8 +69,74 @@ const getProjectProposalById = async (user, id) => {
   return proposal;
 };
 
+const updateProjectProposal = async (user, id, updates) => {
+  // 1. Only ward chairpersons and admins can edit
+  if (![ROLES.WARD_CHAIR, ROLES.CAO, ROLES.GENERAL_ADMIN].includes(user.role)) {
+    throw new AppError('You are not allowed to edit project proposals', 403);
+  }
+
+  // 2. Find the proposal
+  const proposal = await ProjectProposal.findById(id);
+  if (!proposal) {
+    throw new AppError('Project proposal not found', 404);
+  }
+
+  // 3. Ward chairpersons may only edit drafts in their own ward
+  if (user.role === ROLES.WARD_CHAIR) {
+    if (String(proposal.wardId) !== String(user.wardId)) {
+      throw new AppError(
+        'You are not allowed to edit this project proposal',
+        403,
+      );
+    }
+    if (proposal.status !== PROPOSAL_STATUS.DRAFT) {
+      throw new AppError(
+        'Ward chairpersons can only edit draft proposals',
+        400,
+      );
+    }
+  }
+
+  // 4. Apply the validated updates and save
+  Object.assign(proposal, updates);
+  await proposal.save();
+  return proposal;
+};
+
+const submitProjectProposal = async (user, id) => {
+  // 1. Only ward chairpersons can submit
+  if (user.role !== ROLES.WARD_CHAIR) {
+    throw new AppError('Only ward chairpersons can submit proposals', 403);
+  }
+
+  // 2. Find the proposal
+  const proposal = await ProjectProposal.findById(id);
+  if (!proposal) {
+    throw new AppError('Project proposal not found', 404);
+  }
+
+  // 3. Must be a draft in the ward chair's own ward
+  if (String(proposal.wardId) !== String(user.wardId)) {
+    throw new AppError(
+      'You are not allowed to submit this project proposal',
+      403,
+    );
+  }
+  if (proposal.status !== PROPOSAL_STATUS.DRAFT) {
+    throw new AppError('Only draft proposals can be submitted', 400);
+  }
+
+  // 4. Move into the review workflow
+  proposal.status = PROPOSAL_STATUS.SUBMITTED;
+  proposal.submittedAt = new Date();
+  await proposal.save();
+  return proposal;
+};
+
 export default {
   createProjectProposal,
   listProjectProposals,
   getProjectProposalById,
+  updateProjectProposal,
+  submitProjectProposal,
 };
