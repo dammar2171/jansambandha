@@ -33,7 +33,7 @@ const projectBaseSchema = z.object({
 
   contractorId: objectIdSchema.optional(),
 
-  departmentId: objectIdSchema.optional(),
+  departmentId: objectIdSchema,
 
   startDate: dateSchema.optional(),
 
