@@ -1,21 +1,8 @@
 // server/src/models/user.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { ACCOUNT_STATUS, ROLES } from "../helper/constants.js";
 
-export const ROLES = Object.freeze({
-  CITIZEN: "CITIZEN",
-  WARD_CHAIR: "WARD_CHAIR",
-  DEPARTMENT: "DEPARTMENT",
-  GENERAL_ADMIN: "GENERAL_ADMIN",
-  CAO: "CAO",
-  CONTRACTOR: "CONTRACTOR",
-});
-
-export const ACCOUNT_STATUS = Object.freeze({
-  ACTIVE: "ACTIVE",
-  INACTIVE: "INACTIVE",
-  SUSPENDED: "SUSPENDED",
-});
 
 const userSchema = new mongoose.Schema(
   {

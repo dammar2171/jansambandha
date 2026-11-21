@@ -1,20 +1,10 @@
 
 import { z } from "zod";
+import { ACCOUNT_STATUS, ROLES } from "../../helper/constants.js";
 
-export const userRoleSchema = z.enum([
-  "CITIZEN",
-  "WARD_CHAIR",
-  "DEPARTMENT",
-  "GENERAL_ADMIN",
-  "CAO",
-  "CONTRACTOR",
-]);
+export const userRoleSchema = z.enum(Object.values(ROLES));
 
-export const accountStatusSchema = z.enum([
-  "ACTIVE",
-  "INACTIVE",
-  "SUSPENDED",
-]);
+export const accountStatusSchema = z.enum(Object.values(ACCOUNT_STATUS));
 
 const objectIdSchema = z.string().regex(
   /^[0-9a-fA-F]{24}$/,
@@ -42,7 +32,7 @@ export const createOfficialUserSchema = z.object({
 
   password: z.string().min(8).max(72),
 
-  role: userRoleSchema.exclude(["CITIZEN"]),
+  role: userRoleSchema.exclude([ROLES.CITIZEN]),
 
   municipalityId: objectIdSchema,
 
@@ -51,18 +41,18 @@ export const createOfficialUserSchema = z.object({
   departmentId: objectIdSchema.optional(),
 }).superRefine((data, ctx) => {
   if (
-    ["WARD_CHAIR"].includes(data.role) &&
+    data.role === ROLES.WARD_CHAIR &&
     !data.wardId
   ) {
     ctx.addIssue({
       code: "custom",
       path: ["wardId"],
-      message: "wardId is required for WARD_CHAIR",
+      message: "wardId is required for ward chair",
     });
   }
 
   if (
-    data.role === "DEPARTMENT" &&
+    data.role === ROLES.DEPARTMENT &&
     !data.departmentId
   ) {
     ctx.addIssue({

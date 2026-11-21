@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import projectProposalRoutes from './routes/projectProposalRoutes.js';
 
 import logger from "./middlewares/loggerMiddleware.js";
+import errorHandler from "./middlewares/errorHandler.js";
 import config from "./config/config.js";
 import databaseConnection from "./config/db.js";
 
@@ -23,6 +24,8 @@ app.use("/api/v1/project-proposals",projectProposalRoutes);
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use(errorHandler);
 
 
 const startServer = async () => {
