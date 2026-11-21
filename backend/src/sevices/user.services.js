@@ -128,4 +128,29 @@ const createOfficialUser = async (currentUser, input) => {
   }
 };
 
-export default { listUsers, createOfficialUser };
+const updateUserStatus = async (currentUser, targetUserId, accountStatus) => {
+  // 1. Only CAO and General Admin can change account status
+  if (!USER_ADMIN_ROLES.includes(currentUser.role)) {
+    throw new AppError('You are not allowed to update accounts', 403);
+  }
+
+  // 2. Admins cannot change their own status (avoids self lock-out)
+  if (currentUser._id.equals(targetUserId)) {
+    throw new AppError('You cannot change your own account status', 400);
+  }
+
+  // 3. Update the target user, scoped to the admin's own municipality
+  const user = await User.findOneAndUpdate(
+    { _id: targetUserId, municipalityId: currentUser.municipalityId },
+    { accountStatus },
+    { new: true, runValidators: true },
+  );
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // passwordHash is select:false, so it is never returned
+  return user;
+};
+
+export default { listUsers, createOfficialUser, updateUserStatus };
