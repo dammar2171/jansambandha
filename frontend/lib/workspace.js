@@ -66,3 +66,28 @@ export function mapSubmissionRow(u, project) {
     UPDATE_STATUS_LABEL[u.status] ?? 'Submitted',
   ];
 }
+
+const QUALITY_LABEL = {
+  PASS: 'Satisfactory',
+  NEEDS_IMPROVEMENT: 'Needs improvement',
+  FAIL: 'Non-compliant',
+  NOT_ASSESSED: 'Not assessed',
+};
+
+// Map a backend progress-comparison row (a contractor update joined with its
+// department inspection) into the record the inspection register table renders.
+export function mapInspectionRecord(r, project) {
+  const reported = r.reportedProgress ?? 0;
+  const verified = r.verifiedProgress ?? 0;
+  return {
+    id: `INS-${String(r.updateId).slice(-6)}`,
+    project: project?.name ?? 'Project',
+    pid: project?.id ?? '',
+    reported,
+    verified,
+    gap: r.difference ?? reported - verified,
+    quality: QUALITY_LABEL[r.qualityStatus] ?? 'Not assessed',
+    date: fmtDate(r.periodTo),
+    observation: '',
+  };
+}

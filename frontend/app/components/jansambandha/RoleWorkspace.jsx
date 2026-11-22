@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getToken, signOut, useSession } from '@/lib/session';
 import { api } from '@/lib/api';
-import { mapWorkspaceProject, mapSubmissionRow } from '@/lib/workspace';
+import {
+  mapWorkspaceProject,
+  mapSubmissionRow,
+  mapInspectionRecord,
+} from '@/lib/workspace';
 
 const MOCK_PROJECTS = [
   {
@@ -381,6 +385,44 @@ export default function RoleWorkspace({ role, section }) {
         .sort((a, b) => new Date(b.at) - new Date(a.at))
         .map((x) => x.row);
       if (rows.length) setSubmissions(rows);
+    });
+    return () => {
+      active = false;
+    };
+  }, [role, section, projects]);
+
+  // Department inspection register: load recorded inspections (reported vs
+  // verified progress + quality) across the department's projects so the
+  // register reflects real data. Only persisted projects are queried.
+  useEffect(() => {
+    if (
+      role !== 'department' ||
+      !(section === 'inspections' || section === 'progress-verification')
+    )
+      return;
+    const token = getToken();
+    if (!token) return;
+    const real = projects.filter((p) => /^[a-f\d]{24}$/i.test(String(p.id)));
+    if (!real.length) return;
+    let active = true;
+    Promise.all(
+      real.map((p) =>
+        api
+          .getProgressComparison(token, p.id)
+          .then((rows) =>
+            (Array.isArray(rows) ? rows : [])
+              .filter((r) => r.inspected)
+              .map((r) => ({ at: r.periodTo, rec: mapInspectionRecord(r, p) })),
+          )
+          .catch(() => []),
+      ),
+    ).then((chunks) => {
+      if (!active) return;
+      const recs = chunks
+        .flat()
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .map((x) => x.rec);
+      if (recs.length) setRecords(recs);
     });
     return () => {
       active = false;
