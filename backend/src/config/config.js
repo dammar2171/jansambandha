@@ -1,12 +1,17 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
+
 dotenv.config();
 
-const config ={
-  host:process.env.HOST || "",
+const config = {
+  host: process.env.HOST || "localhost",
   port: process.env.PORT || 5000,
+
+  // Authentication
   jwtSecret: process.env.JWT_SECRET || "",
-  database_port:process.env.DATABASE_PORT || 5432,
-  database_name:process.env.DATABASE_NAME || "",
+
+  // Database
+  database_name: process.env.DATABASE_NAME || "",
+  mongodbUri: process.env.MONGODB_URI || "",
 };
 
 export default config;
