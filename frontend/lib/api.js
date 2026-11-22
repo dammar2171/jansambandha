@@ -45,4 +45,9 @@ export const api = {
   loginCitizen: (body) => request('/auth/login', { method: 'POST', body }),
   loginOfficial: (body) => request('/users/login', { method: 'POST', body }),
   getWards: () => request('/wards'),
+
+  // Complaints (citizen)
+  getMyComplaints: (token) => request('/complaints', { token }),
+  createComplaint: (token, body) =>
+    request('/complaints', { method: 'POST', body, token }),
 };

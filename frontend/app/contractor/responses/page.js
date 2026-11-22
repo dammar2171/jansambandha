@@ -1,2 +1,4 @@
-import RoleWorkspace from '../../../components/jansambandha/RoleWorkspace';
-export default function Page(){ return <RoleWorkspace role='contractor' section='responses' />; }
+import RoleWorkspace from '../../components/jansambandha/RoleWorkspace';
+export default function Page() {
+  return <RoleWorkspace role='contractor' section='responses' />;
+}
