@@ -76,6 +76,14 @@ export const api = {
       body,
       token,
     }),
+  getProgressUpdates: (token, projectId) =>
+    request(`/projects/${projectId}/progress-updates`, { token }),
+  verifyProgress: (token, updateId, body) =>
+    request(`/progress-updates/${updateId}/verify`, {
+      method: 'POST',
+      body,
+      token,
+    }),
 
   // Complaints
   getMyComplaints: (token) => request('/complaints', { token }),

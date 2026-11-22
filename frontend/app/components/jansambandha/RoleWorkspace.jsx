@@ -299,6 +299,7 @@ function Field({ label, children }) {
 }
 export default function RoleWorkspace({ role, section }) {
   const [projects, setProjects] = useState(MOCK_PROJECTS);
+  const [verifyUpdate, setVerifyUpdate] = useState(null);
   const [query, setQuery] = useState(''),
     [filter, setFilter] = useState('All'),
     [modal, setModal] = useState(''),
@@ -327,6 +328,29 @@ export default function RoleWorkspace({ role, section }) {
       })
       .catch(() => {});
   }, []);
+
+  // When the department opens the inspection modal, load the selected project's
+  // latest contractor submission so it can be verified.
+  useEffect(() => {
+    if (modal !== 'inspection' || role !== 'department' || !selected?.id)
+      return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProgressUpdates(token, selected.id)
+      .then((list) => {
+        if (!active) return;
+        const arr = Array.isArray(list) ? list : [];
+        setVerifyUpdate(
+          arr.find((u) => u.status === 'SUBMITTED') || arr[0] || null,
+        );
+      })
+      .catch(() => active && setVerifyUpdate(null));
+    return () => {
+      active = false;
+    };
+  }, [modal, selected, role]);
   const cfg = configs[role],
     nav = paths[role],
     isDept = role === 'department',
@@ -1220,27 +1244,59 @@ export default function RoleWorkspace({ role, section }) {
             </form>
           ) : modal === 'inspection' ? (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                let f = new FormData(e.currentTarget),
-                  reported = Number(f.get('reported')),
-                  verified = Number(f.get('verified'));
-                setRecords((v) => [
-                  {
-                    id: `INS-${105 + v.length}`,
-                    project: selected.name,
-                    pid: selected.id,
-                    reported,
-                    verified,
-                    gap: reported - verified,
-                    quality: f.get('quality'),
-                    date: '2083-08-14',
-                    observation: f.get('observation'),
-                  },
-                  ...v,
-                ]);
-                setModal('');
-                notify('Inspection recorded in local demo state');
+                const f = new FormData(e.currentTarget);
+                const token = getToken();
+                if (!verifyUpdate) {
+                  notify(
+                    'No contractor submission to verify for this project.',
+                  );
+                  return;
+                }
+                const verified = Number(f.get('verified'));
+                const observations = String(f.get('observation') || '').trim();
+                if (observations.length < 5) {
+                  notify('Observation must be at least 5 characters.');
+                  return;
+                }
+                const QUALITY = {
+                  Satisfactory: 'PASS',
+                  'Needs improvement': 'NEEDS_IMPROVEMENT',
+                  'Non-compliant': 'FAIL',
+                };
+                try {
+                  await api.verifyProgress(token, verifyUpdate._id, {
+                    verifiedProgress: verified,
+                    qualityStatus: QUALITY[f.get('quality')] || 'NOT_ASSESSED',
+                    observations,
+                  });
+                  setRecords((v) => [
+                    {
+                      id: `INS-${105 + v.length}`,
+                      project: selected.name,
+                      pid: selected.id,
+                      reported: verifyUpdate.reportedProgress,
+                      verified,
+                      gap: verifyUpdate.reportedProgress - verified,
+                      quality: f.get('quality'),
+                      date: new Date().toISOString().slice(0, 10),
+                      observation: observations,
+                    },
+                    ...v,
+                  ]);
+                  setModal('');
+                  notify('Progress verified');
+                  api
+                    .getProjects(token)
+                    .then((list) => {
+                      if (Array.isArray(list) && list.length)
+                        setProjects(list.map(mapWorkspaceProject));
+                    })
+                    .catch(() => {});
+                } catch (err) {
+                  notify(err.message || 'Could not verify progress.');
+                }
               }}
               className='space-y-4'
             >
@@ -1262,13 +1318,13 @@ export default function RoleWorkspace({ role, section }) {
               <div className='grid grid-cols-2 gap-3'>
                 <Field label='Contractor reported progress (%)'>
                   <input
-                    name='reported'
-                    type='number'
-                    min='0'
-                    max='100'
-                    defaultValue={selected.reported}
-                    required
-                    className='w-full rounded-lg border border-slate-200 px-3 py-2'
+                    readOnly
+                    value={
+                      verifyUpdate
+                        ? `${verifyUpdate.reportedProgress}%`
+                        : 'No submission yet'
+                    }
+                    className='w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600'
                   />
                 </Field>
                 <Field label='Department verified progress (%)'>
@@ -1277,7 +1333,6 @@ export default function RoleWorkspace({ role, section }) {
                     type='number'
                     min='0'
                     max='100'
-                    defaultValue={selected.verified}
                     required
                     className='w-full rounded-lg border border-slate-200 px-3 py-2'
                   />
@@ -1306,7 +1361,7 @@ export default function RoleWorkspace({ role, section }) {
                 <Button kind='secondary' onClick={() => setModal('')}>
                   Cancel
                 </Button>
-                <Button>Save inspection</Button>
+                <Button disabled={!verifyUpdate}>Verify progress</Button>
               </div>
             </form>
           ) : (
