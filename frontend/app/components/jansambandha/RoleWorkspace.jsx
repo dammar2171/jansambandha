@@ -1104,19 +1104,54 @@ export default function RoleWorkspace({ role, section }) {
             </>
           ) : modal === 'submission' && isCon ? (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
-                setSubmissions((v) => [
-                  [
-                    `SUB-${2083}-${String(100 + v.length)}`,
-                    `${f.get('project')} · ${f.get('progress')}% · ${f.get('stage')}`,
-                    'Submitted',
-                  ],
-                  ...v,
-                ]);
-                setModal('');
-                notify('Progress submission saved in local demo state');
+                const token = getToken();
+                const projectId = f.get('project');
+                const projectName =
+                  projects.find((p) => p.id === projectId)?.name || 'Project';
+                const progress = f.get('progress');
+                const stage = f.get('stage');
+                const summary = String(f.get('summary') || '').trim();
+                if (!token || !projectId) {
+                  notify('Please sign in again to submit a report.');
+                  return;
+                }
+                if (summary.length < 10) {
+                  notify('Work summary must be at least 10 characters.');
+                  return;
+                }
+                const now = new Date();
+                try {
+                  await api.submitProgressUpdate(token, projectId, {
+                    reportedProgress: Number(progress),
+                    workDescription: summary,
+                    periodFrom: new Date(
+                      now.getTime() - 30 * 86400000,
+                    ).toISOString(),
+                    periodTo: now.toISOString(),
+                  });
+                  setSubmissions((v) => [
+                    [
+                      `SUB-${2083}-${String(100 + v.length)}`,
+                      `${projectName} · ${progress}% · ${stage}`,
+                      'Submitted',
+                    ],
+                    ...v,
+                  ]);
+                  setModal('');
+                  notify('Progress report submitted');
+                  api
+                    .getProjects(token)
+                    .then((list) => {
+                      if (Array.isArray(list) && list.length)
+                        setProjects(list.map(mapWorkspaceProject));
+                    })
+                    .catch(() => {});
+                } catch (err) {
+                  notify(err.message || 'Could not submit progress report.');
+                }
               }}
               className='space-y-4'
             >
@@ -1125,8 +1160,10 @@ export default function RoleWorkspace({ role, section }) {
                   name='project'
                   className='w-full rounded-lg border border-slate-200 px-3 py-2'
                 >
-                  {projects.slice(0, 3).map((p) => (
-                    <option key={p.id}>{p.name}</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </Field>
