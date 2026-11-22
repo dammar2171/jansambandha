@@ -20,6 +20,19 @@ export const registerSchema = z
     message: 'Passwords do not match.',
   });
 
+export const proposalSchema = z.object({
+  title: z.string().trim().min(5, 'Title must be at least 5 characters.'),
+  category: z.string().min(1, 'Choose a category.'),
+  place: z.string().trim().min(1, 'Enter a location.'),
+  budget: z.coerce.number().min(0, 'Budget cannot be negative.'),
+  households: z.coerce.number().min(0, 'Households cannot be negative.'),
+  justification: z
+    .string()
+    .trim()
+    .min(20, 'Justification must be at least 20 characters.'),
+  benefits: z.string().trim().optional(),
+});
+
 export const changePasswordSchema = z
   .object({
     current: z.string().min(1, 'Enter your current password.'),
