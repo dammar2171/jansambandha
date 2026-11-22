@@ -6,6 +6,7 @@ import validateObjectId from '../middlewares/validateObjectId.js';
 import {
   createComplaintSchema,
   updateComplaintSchema,
+  editComplaintSchema,
   createComplaintResponseSchema,
 } from '../libs/schemas/complaint.schema.js';
 
@@ -37,6 +38,14 @@ router.patch(
   validateObjectId('id'),
   validate(updateComplaintSchema),
   complaintControllers.updateComplaintStatus,
+);
+// Citizen (owner): edit their own complaint while it is still submitted
+router.patch(
+  '/:id',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(editComplaintSchema),
+  complaintControllers.editComplaint,
 );
 
 // Ward Chair / General Admin / CAO: send an official response to the citizen

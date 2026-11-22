@@ -102,5 +102,19 @@ export const APPROVAL_DECISION = Object.freeze({
   NOTED: 'NOTED',
 });
 
+export const SUGGESTION_STATUS = Object.freeze({
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  PLANNED: 'PLANNED',
+  DECLINED: 'DECLINED',
+});
+
+export const NOTIFICATION_TYPE = Object.freeze({
+  GENERAL: 'GENERAL',
+  COMPLAINT: 'COMPLAINT',
+  PROJECT: 'PROJECT',
+  SUGGESTION: 'SUGGESTION',
+});
+
 export const MONGODB_OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
 export const SALT_ROUNDS = 12;

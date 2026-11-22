@@ -55,6 +55,7 @@ export function mapProject(p) {
     up: p.reactions?.up ?? 0,
     down: p.reactions?.down ?? 0,
     mine: reactionToUi(p.myReaction),
+    isFollowing: p.isFollowing ?? false,
     commentCount: p.commentCount ?? 0,
     journey: [],
   };

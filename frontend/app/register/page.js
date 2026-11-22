@@ -55,11 +55,20 @@ export default function RegisterPage() {
         municipalityId: ward.municipalityId,
         wardId: ward._id,
       });
+      // Pull the municipality name for the UI labels (non-fatal if it fails).
+      let municipality;
+      try {
+        const me = await api.getMe(token);
+        municipality = me?.municipalityId?.name;
+      } catch {
+        /* ignore */
+      }
       signIn(
         {
           role: 'citizen',
           name: user.fullName,
           ward: ward.wardNumber,
+          municipality,
           token,
           user,
         },

@@ -20,8 +20,8 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
     .toLowerCase();
   const [filter, setFilter] = useState('All');
 
-  // Load real projects for this citizen; keep mock data if the backend is
-  // unreachable or returns nothing, so the prototype never looks empty.
+  // Load the public projects for this citizen's ward and reflect the citizen's
+  // own like/dislike on each card.
   useEffect(() => {
     const token = getToken();
     if (!token) return;

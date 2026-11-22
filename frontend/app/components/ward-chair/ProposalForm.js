@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import WcTopBar from '@/app/components/layout/WcTopBar';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
-import { CATEGORIES } from '@/lib/mock/citizen';
+import { CATEGORIES } from '@/lib/categories';
 import { showToast, upsertProject, useWc } from '@/lib/wc-store';
 import { rs } from '@/lib/wc-score';
 import { getToken } from '@/lib/session';

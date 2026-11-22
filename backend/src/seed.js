@@ -24,6 +24,9 @@ import ProjectApproval from './models/ProjectApproval.js';
 import ProjectFeedback from './models/ProjectFeedback.js';
 import Complaint from './models/Complaints.js';
 import AuditLog from './models/AuditLog.js';
+import Notification from './models/Notification.js';
+import CitizenSuggestion from './models/CitizenSuggestion.js';
+import ProjectFollow from './models/ProjectFollow.js';
 
 import {
   ROLES,
@@ -38,6 +41,8 @@ import {
   FEEDBACK_REACTION,
   MODERATION_STATUS,
   COMPLAINT_STATUS,
+  SUGGESTION_STATUS,
+  NOTIFICATION_TYPE,
 } from './constants/index.js';
 
 const PLAIN_PASSWORD = 'Password@123';
@@ -68,6 +73,10 @@ const ids = {
   feedback1: oid(),
   complaint1: oid(),
   audit1: oid(),
+  suggestion1: oid(),
+  notification1: oid(),
+  notification2: oid(),
+  follow1: oid(),
 };
 
 export async function buildSeedData() {
@@ -314,6 +323,48 @@ export async function buildSeedData() {
     },
   ];
 
+  const suggestions = [
+    {
+      _id: ids.suggestion1,
+      code: 'SUG-SEED01',
+      citizenId: ids.citizen,
+      wardId: ids.ward1,
+      municipalityId: ids.municipality,
+      title: 'Drainage along the market road',
+      category: 'Infrastructure',
+      description:
+        'The market road floods during the monsoon. A covered drain would keep shops and pedestrians safe.',
+      status: SUGGESTION_STATUS.SUBMITTED,
+    },
+  ];
+
+  const follows = [
+    {
+      _id: ids.follow1,
+      projectId: ids.project1,
+      userId: ids.citizen,
+    },
+  ];
+
+  const notifications = [
+    {
+      _id: ids.notification1,
+      recipientId: ids.citizen,
+      type: NOTIFICATION_TYPE.PROJECT,
+      message: 'Verified progress on "Road Repair in Thamel" is now 38%',
+      link: `/citizen/projects/${ids.project1}`,
+      isRead: false,
+    },
+    {
+      _id: ids.notification2,
+      recipientId: ids.citizen,
+      type: NOTIFICATION_TYPE.COMPLAINT,
+      message: 'Your complaint CMP-2081-0001 was received by the ward office',
+      link: '/citizen/complaints',
+      isRead: true,
+    },
+  ];
+
   return {
     municipality,
     wards,
@@ -327,6 +378,9 @@ export async function buildSeedData() {
     feedback,
     complaints,
     auditLogs,
+    suggestions,
+    follows,
+    notifications,
   };
 }
 
@@ -380,6 +434,9 @@ async function run() {
     ProjectFeedback.deleteMany({}),
     Complaint.deleteMany({}),
     AuditLog.deleteMany({}),
+    Notification.deleteMany({}),
+    CitizenSuggestion.deleteMany({}),
+    ProjectFollow.deleteMany({}),
     mongoose.connection.collection('municipalities').deleteMany({}),
   ]);
 
@@ -398,6 +455,9 @@ async function run() {
   await ProjectFeedback.create(data.feedback);
   await Complaint.create(data.complaints);
   await AuditLog.create(data.auditLogs);
+  await CitizenSuggestion.create(data.suggestions);
+  await ProjectFollow.create(data.follows);
+  await Notification.create(data.notifications);
 
   console.log('Inserted:');
   console.log(`  municipalities    1`);
@@ -412,6 +472,9 @@ async function run() {
   console.log(`  projectfeedbacks  ${data.feedback.length}`);
   console.log(`  complaints        ${data.complaints.length}`);
   console.log(`  auditlogs         ${data.auditLogs.length}`);
+  console.log(`  suggestions       ${data.suggestions.length}`);
+  console.log(`  follows           ${data.follows.length}`);
+  console.log(`  notifications     ${data.notifications.length}`);
 
   printPostmanGuide(data.users);
 

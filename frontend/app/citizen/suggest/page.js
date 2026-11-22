@@ -4,8 +4,10 @@ import { useRouter } from 'next/navigation';
 import TopBar from '@/app/components/layout/TopBar';
 import Card from '@/app/components/ui/Card';
 import Button, { ButtonLink } from '@/app/components/ui/Button';
-import { CATEGORIES } from '@/lib/mock/citizen';
-import { addSuggestion } from '@/lib/store';
+import { CATEGORIES } from '@/lib/categories';
+import { showToast } from '@/lib/store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
 
 const input =
   'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -16,8 +18,9 @@ export default function SuggestPage() {
   const [category, setCategory] = useState('Water');
   const [why, setWhy] = useState('');
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     const n = {};
     if (title.trim().length < 5)
@@ -26,8 +29,25 @@ export default function SuggestPage() {
       n.why = 'Explain why it is needed in at least 20 characters.';
     setErrors(n);
     if (Object.keys(n).length) return;
-    addSuggestion({ title: title.trim(), category, why: why.trim() });
-    router.push('/citizen/feedback');
+
+    const token = getToken();
+    if (!token) {
+      showToast('Please sign in again to send a suggestion.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.createSuggestion(token, {
+        title: title.trim(),
+        category,
+        description: why.trim(),
+      });
+      showToast('Suggestion sent to your ward chairperson');
+      router.push('/citizen/feedback');
+    } catch (err) {
+      showToast(err.message || 'Could not send your suggestion.');
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -111,8 +131,13 @@ export default function SuggestPage() {
               )}
             </div>
             <div className='flex gap-2.5'>
-              <Button type='submit' size='dash' className='flex-1'>
-                Send suggestion
+              <Button
+                type='submit'
+                size='dash'
+                className='flex-1'
+                disabled={submitting}
+              >
+                {submitting ? 'Sending\u2026' : 'Send suggestion'}
               </Button>
               <ButtonLink
                 href='/citizen/feedback'

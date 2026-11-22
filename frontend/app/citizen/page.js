@@ -56,7 +56,7 @@ export default function CitizenHome() {
       tone: 'bg-ok-tint text-ok',
     },
     {
-      label: `Projects in Ward ${session?.ward ?? 4}`,
+      label: `Projects in Ward ${session?.ward ?? '\u2014'}`,
       value: projects.length,
       icon: 'folder',
       tone: 'bg-info-tint text-info',
@@ -79,8 +79,9 @@ export default function CitizenHome() {
               Namaste, {first}
             </h1>
             <p className='mt-1 text-sm leading-[18px] text-ink-3'>
-              Ward {session?.ward ?? 4} · Kailali Municipality · Here is what is
-              happening in your ward
+              Ward {session?.ward ?? '\u2014'}
+              {session?.municipality ? ` · ${session.municipality}` : ''} · Here
+              is what is happening in your ward
             </p>
           </div>
           <ButtonLink href='/citizen/complaints' size='dash'>

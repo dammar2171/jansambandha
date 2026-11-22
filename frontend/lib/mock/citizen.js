@@ -1,4 +1,6 @@
-// Sample data used until the backend API exists. Replace with API calls later.
+// Sample data for the ward-chair prototype store (lib/wc-store.js).
+// The citizen portal now reads everything from the backend; only the
+// ward-chair demo still seeds from these arrays.
 
 export const PROJECTS = [
   {
@@ -108,15 +110,6 @@ export const PROJECTS = [
   },
 ];
 
-export const COMMENTS = {
-  water: [
-    { id: "c1", who: "Ram Sharma", initials: "RS", role: null, when: "2 days ago", text: "Please start before monsoon.", likes: 24 },
-    { id: "c2", who: "Municipality Admin", initials: "MA", role: "General Admin", when: "1 day ago", text: "Thank you, Ram. Pipe laying is under way and the department will share the next inspection date here.", likes: 24, reply: true },
-  ],
-  road: [],
-  park: [],
-};
-
 export const COMPLAINTS = [
   {
     id: "WC-2083-0012",
@@ -166,12 +159,3 @@ export const COMPLAINTS = [
     ],
   },
 ];
-
-export const NOTIFICATIONS = [
-  { id: "n1", text: "Hari Thapa replied to your complaint WC-2083-0012", when: "2 days ago", href: "/citizen/complaints", read: false },
-  { id: "n2", text: "Verified progress on Ward 4 Drinking Water Supply is now 55%", when: "3 days ago", href: "/citizen/projects/water", read: false },
-  { id: "n3", text: "Ward 4 Road Improvement was approved", when: "1 week ago", href: "/citizen/projects/road", read: false },
-];
-
-export const SIMILAR_COUNTS = { Water: 14 };
-export const CATEGORIES = ["Water", "Road", "Electricity", "Waste", "Health", "Other"];

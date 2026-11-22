@@ -4,8 +4,10 @@ import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Toast from '@/app/components/ui/Toast';
 import { getRole } from '@/lib/roles';
-import { signOut, useSession } from '@/lib/session';
-import { useStore } from '@/lib/store';
+import { getToken, signOut, useSession } from '@/lib/session';
+import { setNotifications, useStore } from '@/lib/store';
+import { mapNotification } from '@/lib/notifications';
+import { api } from '@/lib/api';
 
 export default function DashboardShell({ role, roleLabel, nav, children }) {
   const session = useSession();
@@ -19,6 +21,19 @@ export default function DashboardShell({ role, roleLabel, nav, children }) {
   }, [session, role, router]);
 
   const authorized = session?.role === role;
+
+  // Keep the sidebar badge and notifications page in sync with the backend.
+  useEffect(() => {
+    if (!authorized) return;
+    const token = getToken();
+    if (!token) return;
+    api
+      .getNotifications(token)
+      .then((list) => {
+        if (Array.isArray(list)) setNotifications(list.map(mapNotification));
+      })
+      .catch(() => {});
+  }, [authorized]);
 
   return (
     <div
@@ -38,8 +53,10 @@ export default function DashboardShell({ role, roleLabel, nav, children }) {
           roleLabel={roleLabel}
           unread={unread}
           user={{
-            name: session?.name ?? 'Ram Sharma',
-            sub: `Citizen \u00b7 Ward ${session?.ward ?? 4}`,
+            name: session?.name ?? 'Citizen',
+            sub: session?.ward
+              ? `Citizen \u00b7 Ward ${session.ward}`
+              : 'Citizen',
           }}
           onSignOut={() => {
             signOut();

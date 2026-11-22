@@ -68,6 +68,21 @@ export const api = {
       body: { comment },
       token,
     }),
+  reportProjectComment: (token, id, commentId) =>
+    request(`/projects/${id}/comments/${commentId}/report`, {
+      method: 'POST',
+      token,
+    }),
+  setRating: (token, id, rating, ratingNote) =>
+    request(`/projects/${id}/rating`, {
+      method: 'POST',
+      body: { rating, ratingNote },
+      token,
+    }),
+  toggleFollowProject: (token, id) =>
+    request(`/projects/${id}/follow`, { method: 'POST', token }),
+  getMyProjectFeedback: (token) =>
+    request('/projects/mine/feedback', { token }),
 
   // Progress updates (contractor submits, department verifies)
   submitProgressUpdate: (token, projectId, body) =>
@@ -92,6 +107,8 @@ export const api = {
   getComplaints: (token) => request('/complaints', { token }),
   createComplaint: (token, body) =>
     request('/complaints', { method: 'POST', body, token }),
+  updateComplaint: (token, id, body) =>
+    request(`/complaints/${id}`, { method: 'PATCH', body, token }),
   updateComplaintStatus: (token, id, status) =>
     request(`/complaints/${id}/status`, {
       method: 'PATCH',
@@ -142,6 +159,19 @@ export const api = {
 
   // Departments
   getDepartments: (token) => request('/departments', { token }),
+
+  // Notifications
+  getNotifications: (token) => request('/notifications', { token }),
+  getUnreadCount: (token) => request('/notifications/unread-count', { token }),
+  markNotificationRead: (token, id) =>
+    request(`/notifications/${id}/read`, { method: 'PATCH', token }),
+  markAllNotificationsRead: (token) =>
+    request('/notifications/read-all', { method: 'PATCH', token }),
+
+  // Citizen project suggestions
+  getSuggestions: (token) => request('/suggestions', { token }),
+  createSuggestion: (token, body) =>
+    request('/suggestions', { method: 'POST', body, token }),
 
   // Audit trail (CAO / General Admin)
   getAuditLogs: (token) => request('/audit-logs', { token }),

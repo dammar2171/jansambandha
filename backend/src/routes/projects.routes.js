@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import projectControllers from '../controllers/projects.controllers.js';
 import validate from '../middlewares/validate.js';
 import authMiddleware from '../middlewares/authenticate.js';
@@ -10,6 +10,7 @@ import {
 import {
   createReactionSchema,
   createCommentSchema,
+  setRatingSchema,
 } from '../libs/schemas/projectFeedback.schema.js';
 import { createProjectUpdateSchema } from '../libs/schemas/projectUpdate.schema.js';
 
@@ -28,6 +29,14 @@ router.post(
 
 // Public: anyone (no login) can see only PUBLIC projects
 router.get('/public', projectControllers.listPublicProjects);
+
+// Citizen: their own project ratings. Declared before "/:id" so the literal
+// "mine" segment is never treated as a project id.
+router.get(
+  '/mine/feedback',
+  authMiddleware.protect,
+  projectControllers.listMyFeedback,
+);
 
 // Any authenticated user; access is visibility/assignment-filtered in the service
 router.get(
@@ -71,6 +80,23 @@ router.delete(
   projectControllers.removeReaction,
 );
 
+// Citizen: rate a public project 1-5 (with an optional note)
+router.post(
+  '/:id/rating',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(setRatingSchema),
+  projectControllers.setRating,
+);
+
+// Citizen: follow / unfollow a public project to get progress notifications
+router.post(
+  '/:id/follow',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectControllers.toggleFollow,
+);
+
 // Citizen: comment on a public project
 router.post(
   '/:id/comments',
@@ -87,6 +113,15 @@ router.delete(
   validateObjectId('id'),
   validateObjectId('commentId'),
   projectControllers.deleteComment,
+);
+
+// Any citizen: report a comment for moderation
+router.post(
+  '/:id/comments/:commentId/report',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validateObjectId('commentId'),
+  projectControllers.reportComment,
 );
 
 // Anyone allowed to view the project: reaction counts + visible comments

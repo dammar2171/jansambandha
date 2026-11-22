@@ -42,8 +42,25 @@ export default function LoginPage() {
           ? await api.loginCitizen(creds)
           : await api.loginOfficial(creds);
       const frontendRole = roleIdFromBackend(user.role);
+      // Enrich the session with a readable ward / municipality for the UI.
+      let ward;
+      let municipality;
+      try {
+        const me = await api.getMe(token);
+        ward = me?.wardId?.wardNumber;
+        municipality = me?.municipalityId?.name;
+      } catch {
+        /* non-fatal: the dashboards still work without the labels */
+      }
       signIn(
-        { role: frontendRole, name: user.fullName, token, user },
+        {
+          role: frontendRole,
+          name: user.fullName,
+          token,
+          user,
+          ward,
+          municipality,
+        },
         remember,
       );
       router.push(getRole(frontendRole)?.home ?? '/');

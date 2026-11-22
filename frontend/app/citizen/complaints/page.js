@@ -8,7 +8,7 @@ import Badge, { StatusBadge } from '@/app/components/ui/Badge';
 import Button from '@/app/components/ui/Button';
 import Timeline from '@/app/components/ui/Timeline';
 import { detailSteps, mapComplaint } from '@/lib/complaints';
-import { CATEGORIES, SIMILAR_COUNTS } from '@/lib/mock/citizen';
+import { CATEGORIES } from '@/lib/categories';
 import {
   saveDraft,
   useStore,
@@ -17,7 +17,7 @@ import {
   showToast,
 } from '@/lib/store';
 import { api } from '@/lib/api';
-import { getSession, getToken } from '@/lib/session';
+import { getSession, getToken, useSession } from '@/lib/session';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { complaintSchema } from '@/lib/schemas';
@@ -45,9 +45,9 @@ function FieldShell({ label, htmlFor, error, children }) {
 }
 
 function ReportForm({ onCreated }) {
+  const session = useSession();
   const draft = useStore((s) => s.draft);
   const [category, setCategory] = useState(draft?.category || 'Water');
-  const [photos, setPhotos] = useState(draft?.photos || []);
   const {
     register,
     handleSubmit,
@@ -62,13 +62,9 @@ function ReportForm({ onCreated }) {
       location: draft?.location || '',
     },
   });
-  const similar = SIMILAR_COUNTS[category];
-
-  function onFiles(e) {
-    const names = Array.from(e.target.files).map((f) => f.name);
-    setPhotos((p) => [...p, ...names].slice(0, 4));
-    e.target.value = '';
-  }
+  const wardLabel = session?.ward
+    ? `Ward ${session.ward}${session?.municipality ? ` \u00b7 ${session.municipality}` : ''}`
+    : 'Your ward';
 
   async function onValid(v) {
     const token = getToken();
@@ -89,7 +85,6 @@ function ReportForm({ onCreated }) {
       prependComplaint(mapped);
       showToast(`Complaint ${mapped.id} submitted`);
       reset({ title: '', description: '', location: '' });
-      setPhotos([]);
       setCategory('Water');
       onCreated(mapped.id);
     } catch (err) {
@@ -98,7 +93,7 @@ function ReportForm({ onCreated }) {
   }
 
   function onSaveDraft() {
-    saveDraft({ category, ...getValues(), photos });
+    saveDraft({ category, ...getValues() });
   }
 
   return (
@@ -153,7 +148,7 @@ function ReportForm({ onCreated }) {
             <input
               id='ward'
               disabled
-              value='Ward 4 · Kailali Municipality'
+              value={wardLabel}
               className={`${inputBase} border-line-strong bg-surface-alt pl-[39px] text-ink-2`}
             />
           </div>
@@ -199,58 +194,6 @@ function ReportForm({ onCreated }) {
           </div>
         </FieldShell>
 
-        <div>
-          <label
-            className={`flex h-[78px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong bg-surface-alt text-ink-2 transition-colors hover:border-brand hover:text-brand focus-within:outline-2 focus-within:outline-brand ${photos.length >= 4 ? 'pointer-events-none opacity-60' : ''}`}
-          >
-            <Icon name='cam' size={22} />
-            <span className='text-[14px] font-medium leading-4'>
-              Add photos (up to 4)
-            </span>
-            <input
-              type='file'
-              accept='image/*'
-              multiple
-              onChange={onFiles}
-              className='sr-only'
-              disabled={photos.length >= 4}
-            />
-          </label>
-          {photos.length > 0 && (
-            <ul className='mt-2 flex flex-wrap gap-2'>
-              {photos.map((n, i) => (
-                <li
-                  key={n + i}
-                  className='inline-flex items-center gap-1.5 rounded-full bg-muted py-1 pl-3 pr-1.5 text-xs text-ink-2'
-                >
-                  {n}
-                  <button
-                    type='button'
-                    aria-label={`Remove ${n}`}
-                    onClick={() =>
-                      setPhotos((p) => p.filter((_, j) => j !== i))
-                    }
-                    className='grid size-5 place-items-center rounded-full hover:bg-line'
-                  >
-                    <Icon name='close' size={12} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {similar && (
-          <div className='flex gap-3 rounded-[10px] border border-brand/20 bg-brand-tint p-3'>
-            <Icon name='info' size={18} className='mt-0.5 text-brand' />
-            <p className='text-[14px] leading-[18px] text-ink-2'>
-              {similar} similar {category.toLowerCase()} complaints were
-              reported in Ward 4. Yours will be grouped with them so the ward
-              sees the demand.
-            </p>
-          </div>
-        )}
-
         <div className='flex items-start gap-2.5'>
           <Button
             type='submit'
@@ -275,6 +218,132 @@ function ReportForm({ onCreated }) {
   );
 }
 
+// Edit an own complaint while it is still "Submitted" (before the ward reviews it).
+function EditForm({ complaint, onDone }) {
+  const [category, setCategory] = useState(complaint.category || 'Water');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(complaintSchema),
+    defaultValues: {
+      title: complaint.title || '',
+      description: complaint.description || '',
+      location: complaint.location || '',
+    },
+  });
+
+  async function onValid(v) {
+    const token = getToken();
+    if (!token) {
+      showToast('Please sign in again to edit this complaint.');
+      return;
+    }
+    try {
+      await api.updateComplaint(token, complaint._id, {
+        title: v.title.trim(),
+        description: v.description.trim(),
+        category,
+        location: (v.location || '').trim() || 'My ward',
+      });
+      const list = await api.getMyComplaints(token);
+      if (Array.isArray(list)) setComplaints(list.map(mapComplaint));
+      showToast('Complaint updated');
+      onDone();
+    } catch (err) {
+      showToast(err.message || 'Could not update complaint.');
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(onValid)}
+      noValidate
+      className='flex flex-col gap-3.5'
+    >
+      <fieldset>
+        <legend className='mb-1.5 text-xs font-medium leading-[16px] text-ink-2'>
+          Category
+        </legend>
+        <div
+          className='flex flex-wrap items-start gap-2'
+          role='radiogroup'
+          aria-label='Category'
+        >
+          {CATEGORIES.map((c) => {
+            const on = c === category;
+            return (
+              <button
+                key={c}
+                type='button'
+                role='radio'
+                aria-checked={on}
+                onClick={() => setCategory(c)}
+                className={`rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  on
+                    ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
+                    : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <FieldShell
+        label='Title'
+        htmlFor='edit-title'
+        error={errors.title?.message}
+      >
+        <input
+          id='edit-title'
+          {...register('title')}
+          aria-invalid={!!errors.title}
+          className={`${inputBase} ${errors.title ? 'border-danger' : 'border-line-strong'}`}
+        />
+      </FieldShell>
+
+      <FieldShell
+        label='Describe the problem'
+        htmlFor='edit-desc'
+        error={errors.description?.message}
+      >
+        <textarea
+          id='edit-desc'
+          {...register('description')}
+          aria-invalid={!!errors.description}
+          className={`${inputBase} h-[84px] resize-none leading-5 ${errors.description ? 'border-danger' : 'border-line-strong'}`}
+        />
+      </FieldShell>
+
+      <FieldShell label='Location' htmlFor='edit-loc'>
+        <input
+          id='edit-loc'
+          {...register('location')}
+          className={`${inputBase} border-line-strong`}
+        />
+      </FieldShell>
+
+      <div className='flex items-center gap-2.5'>
+        <Button
+          type='submit'
+          size='dash'
+          className='flex-1'
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Saving…' : 'Save changes'}
+        </Button>
+        <Button type='button' variant='secondary' size='dash' onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function ComplaintsPage() {
   const complaints = useStore((s) => s.complaints);
   const projects = useStore((s) => s.projects);
@@ -282,6 +351,7 @@ export default function ComplaintsPage() {
     .trim()
     .toLowerCase();
   const [selectedId, setSelectedId] = useState(null);
+  const [editing, setEditing] = useState(false);
 
   // Load this citizen's real complaints; keep mock data if the backend is unreachable
   useEffect(() => {
@@ -302,6 +372,8 @@ export default function ComplaintsPage() {
   );
   const selected = complaints.find((c) => c.id === selectedId) || complaints[0];
   const linked = selected && projects.find((p) => p.id === selected.projectId);
+  // A citizen may edit their own complaint only while it is still submitted.
+  const editable = selected?.status === 'Submitted' && !!selected?._id;
   const open = complaints.filter(
     (c) => !['Resolved', 'Closed'].includes(c.status),
   ).length;
@@ -350,7 +422,10 @@ export default function ComplaintsPage() {
                           type='button'
                           role='row'
                           aria-selected={on}
-                          onClick={() => setSelectedId(c.id)}
+                          onClick={() => {
+                            setSelectedId(c.id);
+                            setEditing(false);
+                          }}
                           className={`grid grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
                         >
                           <span role='cell' className='font-medium text-brand'>
@@ -388,27 +463,53 @@ export default function ComplaintsPage() {
                       {selected.title}
                     </h2>
                   </div>
-                  <StatusBadge status={selected.status} />
-                </div>
-                <Timeline steps={detailSteps(selected)} />
-                {linked && (
-                  <div className='flex items-center gap-3 rounded-[10px] border border-line bg-surface-alt p-[13px]'>
-                    <Icon name='folder' size={18} className='text-brand' />
-                    <div className='min-w-0 flex-1'>
-                      <p className='text-[12px] leading-[14px] text-ink-3'>
-                        Linked project
-                      </p>
-                      <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
-                        {linked.title}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/citizen/projects/${linked.id}`}
-                      className='rounded-lg border border-brand px-[11px] py-1 text-[14px] font-semibold leading-[18px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
-                    >
-                      Open
-                    </Link>
+                  <div className='flex items-center gap-2'>
+                    {editable && !editing && (
+                      <button
+                        type='button'
+                        onClick={() => setEditing(true)}
+                        className='rounded-lg border border-line-strong px-2.5 py-1 text-[13px] font-semibold leading-[18px] text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <StatusBadge status={selected.status} />
                   </div>
+                </div>
+                {editing ? (
+                  <EditForm
+                    complaint={selected}
+                    onDone={() => setEditing(false)}
+                  />
+                ) : (
+                  <>
+                    <Timeline steps={detailSteps(selected)} />
+                    {editable && (
+                      <p className='text-xs leading-[16px] text-ink-3'>
+                        You can edit this complaint until the ward starts
+                        reviewing it.
+                      </p>
+                    )}
+                    {linked && (
+                      <div className='flex items-center gap-3 rounded-[10px] border border-line bg-surface-alt p-[13px]'>
+                        <Icon name='folder' size={18} className='text-brand' />
+                        <div className='min-w-0 flex-1'>
+                          <p className='text-[12px] leading-[14px] text-ink-3'>
+                            Linked project
+                          </p>
+                          <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
+                            {linked.title}
+                          </p>
+                        </div>
+                        <Link
+                          href={`/citizen/projects/${linked.id}`}
+                          className='rounded-lg border border-brand px-[11px] py-1 text-[14px] font-semibold leading-[18px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    )}
+                  </>
                 )}
               </Card>
             )}

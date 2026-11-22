@@ -107,6 +107,50 @@ const addComment = asyncHandler(async (req, res) => {
   return res.status(201).json(new ApiResponse(201, 'Comment added', data));
 });
 
+const setRating = asyncHandler(async (req, res) => {
+  const data = await projectServices.setRating(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res.status(200).json(new ApiResponse(200, 'Rating saved', data));
+});
+
+const listMyFeedback = asyncHandler(async (req, res) => {
+  const data = await projectServices.listMyFeedback(req.user);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Your feedback fetched successfully', data));
+});
+
+const toggleFollow = asyncHandler(async (req, res) => {
+  const data = await projectServices.toggleFollow(req.user, req.params.id);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        data.following ? 'Following project' : 'Unfollowed project',
+        data,
+      ),
+    );
+});
+
+const reportComment = asyncHandler(async (req, res) => {
+  await projectServices.reportComment(
+    req.user,
+    req.params.id,
+    req.params.commentId,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Comment reported to the moderators'));
+});
+
 const getProjectFeedback = asyncHandler(async (req, res) => {
   const data = await projectServices.getProjectFeedback(
     req.user,
@@ -184,6 +228,10 @@ export default {
   addComment,
   getProjectFeedback,
   deleteComment,
+  setRating,
+  listMyFeedback,
+  toggleFollow,
+  reportComment,
   submitProgressUpdate,
   listProgressUpdates,
   getProgressComparison,

@@ -10,14 +10,7 @@ import Button from '@/app/components/ui/Button';
 import ProgressBar from '@/app/components/ui/ProgressBar';
 import Timeline from '@/app/components/ui/Timeline';
 import ReactionButton from '@/app/components/citizen/ReactionButton';
-import {
-  clearRating,
-  reportComment,
-  submitRating,
-  toggleCommentLike,
-  toggleFollow,
-  useStore,
-} from '@/lib/store';
+import { showToast } from '@/lib/store';
 import { useSession } from '@/lib/session';
 import { api } from '@/lib/api';
 import {
@@ -41,8 +34,7 @@ function Metric({ label, value, note }) {
   );
 }
 
-function Comment({ c }) {
-  const liked = useStore((s) => !!s.likedComments[c.id]);
+function Comment({ c, onReport }) {
   return (
     <div className={`flex gap-2.5 ${c.reply ? 'pl-11' : ''}`}>
       <span
@@ -69,15 +61,7 @@ function Comment({ c }) {
           </button>
           <button
             type='button'
-            aria-pressed={liked}
-            onClick={() => toggleCommentLike(c.id)}
-            className={`hover:text-brand focus-visible:outline-2 focus-visible:outline-brand ${liked ? 'font-semibold text-brand' : ''}`}
-          >
-            {c.likes + (liked ? 1 : 0)} likes
-          </button>
-          <button
-            type='button'
-            onClick={reportComment}
+            onClick={() => onReport(c.id)}
             className='hover:text-danger focus-visible:outline-2 focus-visible:outline-brand'
           >
             Report
@@ -109,17 +93,25 @@ function ProjectDetailContent() {
   const myUserId = session?.user?._id;
 
   const [p, setP] = useState(null);
-  const [fb, setFb] = useState({ up: 0, down: 0, mine: null, comments: [] });
+  const [fb, setFb] = useState({
+    up: 0,
+    down: 0,
+    mine: null,
+    myRating: null,
+    myRatingNote: '',
+    comments: [],
+  });
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
 
-  const following = useStore((s) => !!s.following[id]);
-  const rating = useStore((s) => s.ratings[id]);
+  const [following, setFollowing] = useState(false);
   const [text, setText] = useState('');
   const [posting, setPosting] = useState(false);
   const [stars, setStars] = useState(0);
   const [ratingText, setRatingText] = useState('');
   const [ratingError, setRatingError] = useState('');
+  const [editingRating, setEditingRating] = useState(false);
+  const [savingRating, setSavingRating] = useState(false);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -128,7 +120,9 @@ function ProjectDetailContent() {
       try {
         const proj = await api.getProject(token, id);
         if (!active) return;
-        setP(mapProject(proj));
+        const mapped = mapProject(proj);
+        setP(mapped);
+        setFollowing(!!mapped.isFollowing);
         try {
           const feedback = await api.getProjectFeedback(token, id);
           if (!active) return;
@@ -136,6 +130,8 @@ function ProjectDetailContent() {
             up: feedback.reactions?.likes ?? 0,
             down: feedback.reactions?.dislikes ?? 0,
             mine: reactionToUi(feedback.myReaction),
+            myRating: feedback.myRating ?? null,
+            myRatingNote: feedback.myRatingNote ?? '',
             comments: (feedback.comments || []).map((c) =>
               mapComment(c, myUserId),
             ),
@@ -234,6 +230,23 @@ function ProjectDetailContent() {
     }
   }
 
+  async function follow() {
+    if (!token) return;
+    const prev = following;
+    setFollowing(!prev);
+    showToast(
+      !prev
+        ? 'You will get updates on this project'
+        : 'You stopped following this project',
+    );
+    try {
+      const res = await api.toggleFollowProject(token, id);
+      setFollowing(!!res.following);
+    } catch {
+      setFollowing(prev);
+    }
+  }
+
   async function post() {
     const body = text.trim();
     if (!body || !token) return;
@@ -253,11 +266,38 @@ function ProjectDetailContent() {
     }
   }
 
-  function sendFeedback() {
+  async function report(commentId) {
+    if (!token) return;
+    try {
+      await api.reportProjectComment(token, id, commentId);
+      showToast('Comment reported to the moderators');
+    } catch (err) {
+      showToast(err.message || 'Could not report the comment.');
+    }
+  }
+
+  async function sendFeedback() {
     if (!stars) return setRatingError('Choose a star rating first.');
     setRatingError('');
-    submitRating(id, stars, ratingText.trim());
+    if (!token) return;
+    setSavingRating(true);
+    try {
+      await api.setRating(token, id, stars, ratingText.trim() || undefined);
+      setFb((f) => ({
+        ...f,
+        myRating: stars,
+        myRatingNote: ratingText.trim(),
+      }));
+      setEditingRating(false);
+      showToast('Thank you for your feedback');
+    } catch (err) {
+      setRatingError(err.message || 'Could not save your rating.');
+    } finally {
+      setSavingRating(false);
+    }
   }
+
+  const showRatingForm = !fb.myRating || editingRating;
 
   return (
     <>
@@ -301,7 +341,7 @@ function ProjectDetailContent() {
               variant={following ? 'primary' : 'outline'}
               size='dash'
               aria-pressed={following}
-              onClick={() => toggleFollow(id)}
+              onClick={follow}
             >
               <Icon name='bell' size={16} />
               {following ? 'Following' : 'Follow progress'}
@@ -383,7 +423,7 @@ function ProjectDetailContent() {
                 </Button>
               </div>
               {list.length ? (
-                list.map((c) => <Comment key={c.id} c={c} />)
+                list.map((c) => <Comment key={c.id} c={c} onReport={report} />)
               ) : (
                 <p className='text-sm text-ink-3'>
                   No comments yet. Be the first to share how this project
@@ -427,19 +467,19 @@ function ProjectDetailContent() {
               <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                 Your feedback
               </h2>
-              {rating ? (
+              {!showRatingForm ? (
                 <div
                   role='status'
                   className='rounded-[10px] border border-ok/25 bg-ok-tint p-3 text-[14px] leading-[19px] text-ok'
                 >
-                  You rated this project {rating.stars} of 5 (
-                  {LABELS[rating.stars - 1]}).
+                  You rated this project {fb.myRating} of 5 (
+                  {LABELS[fb.myRating - 1]}).
                   <button
                     type='button'
                     onClick={() => {
-                      setStars(rating.stars);
-                      setRatingText(rating.text);
-                      clearRating(id);
+                      setStars(fb.myRating);
+                      setRatingText(fb.myRatingNote || '');
+                      setEditingRating(true);
                     }}
                     className='ml-2 font-semibold underline'
                   >
@@ -486,8 +526,13 @@ function ProjectDetailContent() {
                       {ratingError}
                     </p>
                   )}
-                  <Button size='dash' className='w-full' onClick={sendFeedback}>
-                    Submit feedback
+                  <Button
+                    size='dash'
+                    className='w-full'
+                    onClick={sendFeedback}
+                    disabled={savingRating}
+                  >
+                    {savingRating ? 'Saving\u2026' : 'Submit feedback'}
                   </Button>
                 </>
               )}

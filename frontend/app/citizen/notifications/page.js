@@ -1,13 +1,29 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import TopBar from '@/app/components/layout/TopBar';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
-import { markAllRead, markRead, useStore } from '@/lib/store';
+import { markAllRead, markRead, setNotifications, useStore } from '@/lib/store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapNotification } from '@/lib/notifications';
 
 export default function NotificationsPage() {
   const list = useStore((s) => s.notifications);
   const unread = list.filter((n) => !n.read).length;
+
+  // Refresh from the backend when the page opens.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getNotifications(token)
+      .then((items) => {
+        if (Array.isArray(items)) setNotifications(items.map(mapNotification));
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>

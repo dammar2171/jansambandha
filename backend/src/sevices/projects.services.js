@@ -3,6 +3,8 @@ import ProjectProposal from '../models/ProjectProposal.js';
 import ProjectFeedback from '../models/ProjectFeedback.js';
 import ProjectUpdate from '../models/ProjectUpadates.js';
 import ProjectInspection from '../models/ProjectInspect.js';
+import ProjectFollow from '../models/ProjectFollow.js';
+import notificationServices from './notification.services.js';
 import { AppError } from '../utils/AppError.js';
 import {
   ROLES,
@@ -10,7 +12,24 @@ import {
   PROJECT_VISIBILITY,
   FEEDBACK_REACTION,
   MODERATION_STATUS,
+  NOTIFICATION_TYPE,
 } from '../constants/index.js';
+
+// Notify every citizen following a project (fire-and-forget).
+const notifyFollowers = async (project, message) => {
+  const follows = await ProjectFollow.find({ projectId: project._id })
+    .select('userId')
+    .lean();
+  if (follows.length === 0) return;
+  await notificationServices.notifyMany(
+    follows.map((f) => f.userId),
+    {
+      type: NOTIFICATION_TYPE.PROJECT,
+      message,
+      link: `/citizen/projects/${project._id}`,
+    },
+  );
+};
 
 // Which projects a user may see:
 //   - everyone sees PUBLIC projects
@@ -39,32 +58,41 @@ const enrichProjects = async (projects, user) => {
   if (projects.length === 0) return projects;
   const ids = projects.map((p) => p._id);
 
-  const [feedback, inspections, updates, myReactions] = await Promise.all([
-    ProjectFeedback.find({
-      projectId: { $in: ids },
-      moderationStatus: MODERATION_STATUS.VISIBLE,
-    })
-      .select('projectId reaction comment')
-      .lean(),
-    ProjectInspection.find({ projectId: { $in: ids } })
-      .select('projectId verifiedProgress qualityStatus inspectionDate')
-      .sort({ inspectionDate: -1 })
-      .lean(),
-    ProjectUpdate.find({ projectId: { $in: ids } })
-      .select('projectId reportedProgress createdAt')
-      .sort({ createdAt: -1 })
-      .lean(),
-    user?._id
-      ? ProjectFeedback.find({ projectId: { $in: ids }, userId: user._id })
-          .select('projectId reaction')
-          .lean()
-      : [],
-  ]);
+  const [feedback, inspections, updates, myReactions, myFollows] =
+    await Promise.all([
+      ProjectFeedback.find({
+        projectId: { $in: ids },
+        moderationStatus: { $ne: MODERATION_STATUS.HIDDEN },
+      })
+        .select('projectId reaction comment')
+        .lean(),
+      ProjectInspection.find({ projectId: { $in: ids } })
+        .select('projectId verifiedProgress qualityStatus inspectionDate')
+        .sort({ inspectionDate: -1 })
+        .lean(),
+      ProjectUpdate.find({ projectId: { $in: ids } })
+        .select('projectId reportedProgress createdAt')
+        .sort({ createdAt: -1 })
+        .lean(),
+      user?._id
+        ? ProjectFeedback.find({ projectId: { $in: ids }, userId: user._id })
+            .select('projectId reaction')
+            .lean()
+        : [],
+      user?._id
+        ? ProjectFollow.find({ projectId: { $in: ids }, userId: user._id })
+            .select('projectId')
+            .lean()
+        : [],
+    ]);
 
   // The current user's own reaction per project, so lists can show it.
   const myReactionMap = new Map(
     myReactions.map((m) => [String(m.projectId), m.reaction]),
   );
+
+  // Projects the current user follows, so the detail page can show the state.
+  const myFollowSet = new Set(myFollows.map((f) => String(f.projectId)));
 
   const stats = new Map();
   for (const f of feedback) {
@@ -96,6 +124,7 @@ const enrichProjects = async (projects, user) => {
       ...p,
       reactions: { up: s.up, down: s.down },
       myReaction: myReactionMap.get(key) ?? null,
+      isFollowing: myFollowSet.has(key),
       commentCount: s.comments,
       verifiedProgress: insp ? insp.verifiedProgress : 0,
       qualityStatus: insp ? insp.qualityStatus : null,
@@ -195,6 +224,15 @@ const updateProject = async (user, id, updates) => {
   // 3. Apply the validated updates and save
   Object.assign(project, updates);
   await project.save();
+
+  // 4. Tell followers when the status changes (fire-and-forget)
+  if (updates.status) {
+    notifyFollowers(
+      project,
+      `Project "${project.title}" is now ${project.status}`,
+    ).catch(() => {});
+  }
+
   return project;
 };
 
@@ -270,8 +308,8 @@ const removeReaction = async (user, projectId) => {
     throw new AppError('No reaction to remove', 404);
   }
 
-  // Keep the document if a comment remains; otherwise remove it entirely
-  if (feedback.comment) {
+  // Keep the document if a comment or rating remains; otherwise remove it
+  if (feedback.comment || feedback.rating != null) {
     feedback.reaction = null;
     await feedback.save();
     return feedback;
@@ -293,6 +331,81 @@ const addComment = async (user, projectId, comment) => {
   );
 };
 
+const setRating = async (user, projectId, input) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can rate projects', 403);
+  }
+  await assertPublicProject(projectId);
+
+  const update = { rating: input.rating };
+  if (input.ratingNote !== undefined) {
+    update.ratingNote = input.ratingNote || null;
+  }
+
+  return ProjectFeedback.findOneAndUpdate(
+    { projectId, userId: user._id },
+    { $set: update },
+    { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
+  );
+};
+
+// A citizen's own project ratings, for the "My Feedback" page
+const listMyFeedback = async (user) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can view their feedback', 403);
+  }
+
+  const docs = await ProjectFeedback.find({
+    userId: user._id,
+    rating: { $ne: null },
+  })
+    .select('projectId rating ratingNote createdAt updatedAt')
+    .populate('projectId', 'title status')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  // Drop ratings whose project no longer exists
+  return docs
+    .filter((d) => d.projectId)
+    .map((d) => ({
+      projectId: d.projectId._id,
+      title: d.projectId.title,
+      status: d.projectId.status,
+      rating: d.rating,
+      ratingNote: d.ratingNote,
+      createdAt: d.createdAt,
+    }));
+};
+
+const toggleFollow = async (user, projectId) => {
+  if (user.role !== ROLES.CITIZEN) {
+    throw new AppError('Only citizens can follow projects', 403);
+  }
+  await assertPublicProject(projectId);
+
+  const existing = await ProjectFollow.findOne({ projectId, userId: user._id });
+  if (existing) {
+    await existing.deleteOne();
+    return { following: false };
+  }
+  await ProjectFollow.create({ projectId, userId: user._id });
+  return { following: true };
+};
+
+const reportComment = async (user, projectId, commentId) => {
+  const feedback = await ProjectFeedback.findOne({
+    _id: commentId,
+    projectId,
+  });
+  if (!feedback || !feedback.comment) {
+    throw new AppError('Comment not found', 404);
+  }
+  // Flag for moderators; it stays visible until a moderator hides it.
+  feedback.moderationStatus = MODERATION_STATUS.FLAGGED;
+  await feedback.save();
+  return null;
+};
+
 const getProjectFeedback = async (user, projectId) => {
   // Anyone allowed to view the project can see its feedback
   const project = await Project.findOne({
@@ -303,7 +416,7 @@ const getProjectFeedback = async (user, projectId) => {
     throw new AppError('Project not found', 404);
   }
 
-  const [likes, dislikes, comments, mine] = await Promise.all([
+  const [likes, dislikes, comments, ratings, mine] = await Promise.all([
     ProjectFeedback.countDocuments({
       projectId,
       reaction: FEEDBACK_REACTION.LIKE,
@@ -314,18 +427,34 @@ const getProjectFeedback = async (user, projectId) => {
     }),
     ProjectFeedback.find({
       projectId,
-      moderationStatus: MODERATION_STATUS.VISIBLE,
+      moderationStatus: { $ne: MODERATION_STATUS.HIDDEN },
       comment: { $ne: null },
     })
       .select('userId comment createdAt')
       .populate('userId', 'fullName')
       .sort({ createdAt: -1 }),
-    ProjectFeedback.findOne({ projectId, userId: user._id }).select('reaction'),
+    ProjectFeedback.find({ projectId, rating: { $ne: null } })
+      .select('rating')
+      .lean(),
+    ProjectFeedback.findOne({ projectId, userId: user._id }).select(
+      'reaction rating ratingNote',
+    ),
   ]);
+
+  const ratingCount = ratings.length;
+  const ratingAverage = ratingCount
+    ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratingCount
+    : 0;
 
   return {
     reactions: { likes, dislikes },
     myReaction: mine?.reaction ?? null,
+    myRating: mine?.rating ?? null,
+    myRatingNote: mine?.ratingNote ?? null,
+    rating: {
+      average: Math.round(ratingAverage * 10) / 10,
+      count: ratingCount,
+    },
     comments,
   };
 };
@@ -346,8 +475,8 @@ const deleteComment = async (user, projectId, commentId) => {
     throw new AppError('You are not allowed to delete this comment', 403);
   }
 
-  // Keep the document if a reaction remains; otherwise remove it entirely
-  if (feedback.reaction) {
+  // Keep the document if a reaction or rating remains; otherwise remove it
+  if (feedback.reaction || feedback.rating != null) {
     feedback.comment = null;
     await feedback.save();
     return feedback;
@@ -475,6 +604,10 @@ export default {
   setReaction,
   removeReaction,
   addComment,
+  setRating,
+  listMyFeedback,
+  toggleFollow,
+  reportComment,
   getProjectFeedback,
   deleteComment,
   submitProgressUpdate,
