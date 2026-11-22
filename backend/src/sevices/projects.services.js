@@ -32,8 +32,60 @@ const buildVisibilityFilter = (user) => {
   return { $or: or };
 };
 
+// Attach like/dislike counts, visible comment count, and latest verified
+// progress so a project list is useful on its own (one query each, no N+1).
+const enrichProjects = async (projects) => {
+  if (projects.length === 0) return projects;
+  const ids = projects.map((p) => p._id);
+
+  const [feedback, inspections] = await Promise.all([
+    ProjectFeedback.find({
+      projectId: { $in: ids },
+      moderationStatus: MODERATION_STATUS.VISIBLE,
+    })
+      .select('projectId reaction comment')
+      .lean(),
+    ProjectInspection.find({ projectId: { $in: ids } })
+      .select('projectId verifiedProgress inspectionDate')
+      .sort({ inspectionDate: -1 })
+      .lean(),
+  ]);
+
+  const stats = new Map();
+  for (const f of feedback) {
+    const key = String(f.projectId);
+    const s = stats.get(key) || { up: 0, down: 0, comments: 0 };
+    if (f.reaction === FEEDBACK_REACTION.LIKE) s.up += 1;
+    else if (f.reaction === FEEDBACK_REACTION.DISLIKE) s.down += 1;
+    if (f.comment && f.comment.trim()) s.comments += 1;
+    stats.set(key, s);
+  }
+
+  // inspections are sorted newest first, so the first per project is the latest
+  const verified = new Map();
+  for (const insp of inspections) {
+    const key = String(insp.projectId);
+    if (!verified.has(key)) verified.set(key, insp.verifiedProgress);
+  }
+
+  return projects.map((p) => {
+    const s = stats.get(String(p._id)) || { up: 0, down: 0, comments: 0 };
+    return {
+      ...p,
+      reactions: { up: s.up, down: s.down },
+      commentCount: s.comments,
+      verifiedProgress: verified.get(String(p._id)) ?? 0,
+    };
+  });
+};
+
 const listProjects = async (user) => {
-  return Project.find(buildVisibilityFilter(user)).sort({ createdAt: -1 });
+  const projects = await Project.find(buildVisibilityFilter(user))
+    .populate('wardId', 'wardNumber name')
+    .populate('departmentId', 'name')
+    .sort({ createdAt: -1 })
+    .lean();
+  return enrichProjects(projects);
 };
 
 const listPublicProjects = async () => {

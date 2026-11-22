@@ -21,7 +21,8 @@ export default function ProjectCard({ project: p }) {
             {p.title}
           </h3>
           <p className='mt-0.5 text-[13px] leading-4 text-ink-3'>
-            {p.category} · {p.place} · Priority {p.priority}/100
+            {p.category} · {p.place}
+            {p.priority != null ? ` · Priority ${p.priority}/100` : ''}
           </p>
         </div>
         <StatusBadge status={p.status} className='mt-2' />

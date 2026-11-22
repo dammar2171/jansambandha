@@ -49,6 +49,9 @@ export const api = {
     request('/auth/change-password', { method: 'PATCH', body, token }),
   getWards: () => request('/wards'),
 
+  // Projects (citizen)
+  getProjects: (token) => request('/projects', { token }),
+
   // Complaints (citizen)
   getMyComplaints: (token) => request('/complaints', { token }),
   createComplaint: (token, body) =>

@@ -138,6 +138,9 @@ export const saveDraft = (draft) => {
 // Replace the complaint list (used to hydrate from the backend)
 export const setComplaints = (complaints) => set({ complaints });
 
+// Replace the project list (used to hydrate from the backend)
+export const setProjects = (projects) => set({ projects });
+
 // Prepend a single complaint (already in store shape)
 export const prependComplaint = (complaint) =>
   set({ complaints: [complaint, ...state.complaints], draft: null });

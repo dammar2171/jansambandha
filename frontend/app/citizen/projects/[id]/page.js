@@ -167,7 +167,7 @@ function ProjectDetailContent() {
               </h1>
               <StatusBadge status={p.status} />
               <Badge>{p.category}</Badge>
-              <Badge>Priority {p.priority}/100</Badge>
+              {p.priority != null && <Badge>Priority {p.priority}/100</Badge>}
             </div>
             <p className='mt-2 text-[13px] leading-[17px] text-ink-3'>
               {p.place} · {p.fy} · {p.dept}
