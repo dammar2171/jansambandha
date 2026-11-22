@@ -56,10 +56,22 @@
   --color-danger-tint: var(--danger-tint);
   --color-info: var(--info);
   --color-info-tint: var(--info-tint);
-  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
 }
 
 body {
   background: var(--canvas);
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.006em;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.018em;
 }
