@@ -164,6 +164,14 @@ const getProgressComparison = asyncHandler(async (req, res) => {
     );
 });
 
+const listMyProjects = asyncHandler(async (req, res) => {
+  const data = await projectServices.listMyProjects(req.user);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Your projects fetched successfully', data));
+});
+
 export default {
   listProjects,
   listPublicProjects,
@@ -179,4 +187,5 @@ export default {
   submitProgressUpdate,
   listProgressUpdates,
   getProgressComparison,
+  listMyProjects,
 };

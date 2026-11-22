@@ -366,6 +366,16 @@ const getProgressComparison = async (user, projectId) => {
   });
 };
 
+const listMyProjects = async (user) => {
+  if (user.role !== ROLES.CONTRACTOR) {
+    throw new AppError(
+      'Only contractors can view their assigned projects',
+      403,
+    );
+  }
+  return Project.find({ contractorId: user._id }).sort({ createdAt: -1 });
+};
+
 export default {
   listProjects,
   listPublicProjects,
@@ -381,4 +391,5 @@ export default {
   submitProgressUpdate,
   listProgressUpdates,
   getProgressComparison,
+  listMyProjects,
 };
