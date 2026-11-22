@@ -89,6 +89,9 @@ export const setPrefill = (prefill) => set({ prefill });
 // Replace the proposal list (used to hydrate from the backend)
 export const setProjects = (projects) => set({ projects });
 
+// Replace the complaint list (used to hydrate from the backend)
+export const setComplaints = (complaints) => set({ complaints });
+
 // Add a proposal, or replace it in place if it already exists (by id)
 export const upsertProject = (project) => {
   const exists = state.projects.some((p) => p.id === project.id);

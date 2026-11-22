@@ -1,14 +1,22 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import WcTopBar from '@/app/components/layout/WcTopBar';
 import Card from '@/app/components/ui/Card';
 import Badge, { StatusBadge } from '@/app/components/ui/Badge';
 import Button from '@/app/components/ui/Button';
 import Timeline from '@/app/components/ui/Timeline';
-import { detailSteps } from '@/lib/complaints';
+import { detailSteps, mapComplaint } from '@/lib/complaints';
 import { DEPARTMENTS } from '@/lib/mock/wardchair';
-import { needsResponse, respond, selectComplaint, useWc } from '@/lib/wc-store';
+import {
+  needsResponse,
+  respond,
+  selectComplaint,
+  setComplaints,
+  useWc,
+} from '@/lib/wc-store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
 
 const FILTERS = [
   ['All', () => true],
@@ -24,6 +32,13 @@ const STATUSES = [
   'Resolved',
   'Closed',
 ];
+const STATUS_TO_BACKEND = {
+  'Under review': 'UNDER_REVIEW',
+  Assigned: 'ASSIGNED',
+  'In progress': 'IN_PROGRESS',
+  Resolved: 'RESOLVED',
+  Closed: 'CLOSED',
+};
 const field =
   'w-full rounded-lg border border-line-strong bg-surface px-[15px] py-2.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
 
@@ -35,20 +50,33 @@ function ResponsePanel({ c, projects }) {
   const [error, setError] = useState('');
   const assigning = status === 'Assigned' || status === 'In progress';
 
-  function send(e) {
+  const [sending, setSending] = useState(false);
+
+  async function send(e) {
     e.preventDefault();
     if (message.trim().length < 10)
       return setError(
         'Write a response of at least 10 characters. The citizen will read it.',
       );
     setError('');
-    respond(c.id, {
-      status,
-      message: message.trim(),
-      assignee: assigning ? assignee : null,
-      projectId,
-    });
-    setMessage('');
+    setSending(true);
+    try {
+      const token = getToken();
+      await api.updateComplaintStatus(token, c._id, STATUS_TO_BACKEND[status]);
+      await api.addComplaintResponse(token, c._id, message.trim());
+      // Reflect the change locally (assignee/project links stay on the client)
+      respond(c.id, {
+        status,
+        message: message.trim(),
+        assignee: assigning ? assignee : null,
+        projectId,
+      });
+      setMessage('');
+    } catch (err) {
+      setError(err.message || 'Could not send the response.');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -157,8 +185,13 @@ function ResponsePanel({ c, projects }) {
               </p>
             )}
           </div>
-          <Button type='submit' size='dash' className='w-full'>
-            Send response
+          <Button
+            type='submit'
+            size='dash'
+            className='w-full'
+            disabled={sending}
+          >
+            {sending ? 'Sending\u2026' : 'Send response'}
           </Button>
         </form>
       </Card>
@@ -174,6 +207,20 @@ export default function WardComplaintsPage() {
     .trim()
     .toLowerCase();
   const [filter, setFilter] = useState('All');
+
+  // Load this ward's real complaints; keep mock data if the backend is
+  // unreachable or returns nothing.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getComplaints(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setComplaints(list.map(mapComplaint));
+      })
+      .catch(() => {});
+  }, []);
 
   const pred = FILTERS.find(([l]) => l === filter)[1];
   const rows = complaints

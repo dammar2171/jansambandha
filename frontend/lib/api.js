@@ -69,10 +69,23 @@ export const api = {
       token,
     }),
 
-  // Complaints (citizen)
+  // Complaints
   getMyComplaints: (token) => request('/complaints', { token }),
+  getComplaints: (token) => request('/complaints', { token }),
   createComplaint: (token, body) =>
     request('/complaints', { method: 'POST', body, token }),
+  updateComplaintStatus: (token, id, status) =>
+    request(`/complaints/${id}/status`, {
+      method: 'PATCH',
+      body: { status },
+      token,
+    }),
+  addComplaintResponse: (token, id, message) =>
+    request(`/complaints/${id}/responses`, {
+      method: 'POST',
+      body: { message },
+      token,
+    }),
 
   // Project proposals (ward chair)
   getProposals: (token) => request('/project-proposals', { token }),

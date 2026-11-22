@@ -62,7 +62,9 @@ const listComplaints = async (user) => {
     default:
       throw new AppError('You are not allowed to view complaints', 403);
   }
-  return Complaint.find(filter).sort({ createdAt: -1 });
+  return Complaint.find(filter)
+    .populate('citizenId', 'fullName')
+    .sort({ createdAt: -1 });
 };
 
 // Who may view a complaint: owner citizen, responsible ward chair, CAO / General Admin
