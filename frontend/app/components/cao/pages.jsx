@@ -9,8 +9,11 @@ import {
   audit,
   money,
 } from '../../../lib/cao/data';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
+import { officialSchema } from '@/lib/schemas';
 import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
 import { OFFICIAL_ROLES, mapUser, roleToBackend } from '@/lib/cao/users';
 import { mapCaoProject } from '@/lib/cao/projects';
@@ -871,14 +874,48 @@ export function UsersPage() {
   const { showNotice, Notice } = useNotice();
   const [wardOptions, setWardOptions] = useState([]);
   const [deptOptions, setDeptOptions] = useState([]);
-  const [form, setForm] = useState({
+  const DEFAULTS = {
     name: '',
     email: '',
     password: '',
     role: 'Ward Chair',
     wardId: '',
     departmentId: '',
+  };
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(officialSchema),
+    defaultValues: DEFAULTS,
   });
+  const roleLabel = useWatch({ control, name: 'role' });
+
+  async function onCreateOfficial(v) {
+    const token = getToken();
+    const role = roleToBackend[v.role];
+    const body = {
+      fullName: v.name.trim(),
+      email: v.email.trim(),
+      password: v.password,
+      role,
+    };
+    if (role === 'ward') body.wardId = v.wardId;
+    if (role === 'department') body.departmentId = v.departmentId;
+    try {
+      await api.createOfficial(token, body);
+      const data = await api.getUsers(token);
+      if (Array.isArray(data)) setList(data.map(mapUser));
+      setModal(false);
+      reset(DEFAULTS);
+      showNotice('Account created.');
+    } catch (err) {
+      showNotice(err.message || 'Could not create account.');
+    }
+  }
 
   // Load real accounts plus ward/department options for the create form;
   // keep mock data if the backend is unreachable.
@@ -1025,132 +1062,108 @@ export function UsersPage() {
       </div>
       {modal && (
         <Modal title='Create municipal account' onClose={() => setModal(false)}>
-          <div className='space-y-3'>
-            <Field label='Full name'>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-            <Field label='Email'>
-              <input
-                type='email'
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-            <Field label='Role'>
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+          <form onSubmit={handleSubmit(onCreateOfficial)} noValidate>
+            <div className='space-y-3'>
+              <Field label='Full name'>
+                <input
+                  {...register('name')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.name && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.name.message}
+                  </p>
+                )}
+              </Field>
+              <Field label='Email'>
+                <input
+                  type='email'
+                  {...register('email')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.email && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.email.message}
+                  </p>
+                )}
+              </Field>
+              <Field label='Role'>
+                <select
+                  {...register('role')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                >
+                  {OFFICIAL_ROLES.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label='Temporary password'>
+                <input
+                  type='password'
+                  {...register('password')}
+                  placeholder='At least 8 characters'
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.password && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.password.message}
+                  </p>
+                )}
+              </Field>
+              {roleLabel === 'Ward Chair' && (
+                <Field label='Ward'>
+                  <select
+                    {...register('wardId')}
+                    className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                  >
+                    <option value=''>Select a ward</option>
+                    {wardOptions.map((w) => (
+                      <option key={w._id} value={w._id}>
+                        Ward {w.wardNumber} — {w.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.wardId && (
+                    <p className='mt-1.5 text-xs text-red-700'>
+                      {errors.wardId.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+              {roleLabel === 'Department' && (
+                <Field label='Department'>
+                  <select
+                    {...register('departmentId')}
+                    className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                  >
+                    <option value=''>Select a department</option>
+                    {deptOptions.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.departmentId && (
+                    <p className='mt-1.5 text-xs text-red-700'>
+                      {errors.departmentId.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+            </div>
+            <div className='mt-5 flex justify-end gap-2'>
+              <Btn
+                kind='secondary'
+                type='button'
+                onClick={() => setModal(false)}
               >
-                {OFFICIAL_ROLES.map((x) => (
-                  <option key={x}>{x}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label='Temporary password'>
-              <input
-                type='password'
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder='At least 8 characters'
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-            {form.role === 'Ward Chair' && (
-              <Field label='Ward'>
-                <select
-                  value={form.wardId}
-                  onChange={(e) => setForm({ ...form, wardId: e.target.value })}
-                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-                >
-                  <option value=''>Select a ward</option>
-                  {wardOptions.map((w) => (
-                    <option key={w._id} value={w._id}>
-                      Ward {w.wardNumber} — {w.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
-            {form.role === 'Department' && (
-              <Field label='Department'>
-                <select
-                  value={form.departmentId}
-                  onChange={(e) =>
-                    setForm({ ...form, departmentId: e.target.value })
-                  }
-                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-                >
-                  <option value=''>Select a department</option>
-                  {deptOptions.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
-          </div>
-          <div className='mt-5 flex justify-end gap-2'>
-            <Btn kind='secondary' onClick={() => setModal(false)}>
-              Cancel
-            </Btn>
-            <Btn
-              onClick={async () => {
-                const token = getToken();
-                const role = roleToBackend[form.role];
-                if (!form.name.trim() || !form.email.trim()) {
-                  showNotice('Full name and email are required.');
-                  return;
-                }
-                if (form.password.length < 8) {
-                  showNotice('Password must be at least 8 characters.');
-                  return;
-                }
-                if (role === 'ward' && !form.wardId) {
-                  showNotice('Select a ward for the ward chair.');
-                  return;
-                }
-                if (role === 'department' && !form.departmentId) {
-                  showNotice('Select a department.');
-                  return;
-                }
-                const body = {
-                  fullName: form.name.trim(),
-                  email: form.email.trim(),
-                  password: form.password,
-                  role,
-                };
-                if (role === 'ward') body.wardId = form.wardId;
-                if (role === 'department')
-                  body.departmentId = form.departmentId;
-                try {
-                  await api.createOfficial(token, body);
-                  const data = await api.getUsers(token);
-                  if (Array.isArray(data)) setList(data.map(mapUser));
-                  setModal(false);
-                  setForm({
-                    name: '',
-                    email: '',
-                    password: '',
-                    role: 'Ward Chair',
-                    wardId: '',
-                    departmentId: '',
-                  });
-                  showNotice('Account created.');
-                } catch (err) {
-                  showNotice(err.message || 'Could not create account.');
-                }
-              }}
-            >
-              Create account
-            </Btn>
-          </div>
+                Cancel
+              </Btn>
+              <Btn type='submit'>
+                {isSubmitting ? 'Creating\u2026' : 'Create account'}
+              </Btn>
+            </div>
+          </form>
         </Modal>
       )}
       <Notice />

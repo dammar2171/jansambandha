@@ -18,6 +18,9 @@ import {
 } from '@/lib/store';
 import { api } from '@/lib/api';
 import { getSession, getToken } from '@/lib/session';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { complaintSchema } from '@/lib/schemas';
 
 const inputBase =
   'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm leading-[17px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -44,12 +47,21 @@ function FieldShell({ label, htmlFor, error, children }) {
 function ReportForm({ onCreated }) {
   const draft = useStore((s) => s.draft);
   const [category, setCategory] = useState(draft?.category || 'Water');
-  const [title, setTitle] = useState(draft?.title || '');
-  const [description, setDescription] = useState(draft?.description || '');
-  const [location, setLocation] = useState(draft?.location || '');
   const [photos, setPhotos] = useState(draft?.photos || []);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(complaintSchema),
+    defaultValues: {
+      title: draft?.title || '',
+      description: draft?.description || '',
+      location: draft?.location || '',
+    },
+  });
   const similar = SIMILAR_COUNTS[category];
 
   function onFiles(e) {
@@ -58,52 +70,44 @@ function ReportForm({ onCreated }) {
     e.target.value = '';
   }
 
-  async function submit(e) {
-    e.preventDefault();
-    const next = {};
-    if (title.trim().length < 5)
-      next.title = 'Give the problem a short title, at least 5 characters.';
-    if (description.trim().length < 20)
-      next.description =
-        'Describe the problem in at least 20 characters so the ward can act on it.';
-    setErrors(next);
-    if (Object.keys(next).length) return;
-
+  async function onValid(v) {
     const token = getToken();
     const wardId = getSession()?.user?.wardId;
     if (!token || !wardId) {
       showToast('Please sign in again to submit a complaint.');
       return;
     }
-
-    setSubmitting(true);
     try {
       const created = await api.createComplaint(token, {
         category,
-        title: title.trim(),
-        description: description.trim(),
-        location: location.trim() || 'My ward',
+        title: v.title.trim(),
+        description: v.description.trim(),
+        location: (v.location || '').trim() || 'My ward',
         wardId,
       });
       const mapped = mapComplaint(created);
       prependComplaint(mapped);
       showToast(`Complaint ${mapped.id} submitted`);
-      setTitle('');
-      setDescription('');
-      setLocation('');
+      reset({ title: '', description: '', location: '' });
       setPhotos([]);
       setCategory('Water');
       onCreated(mapped.id);
     } catch (err) {
       showToast(err.message || 'Could not submit complaint.');
-    } finally {
-      setSubmitting(false);
     }
+  }
+
+  function onSaveDraft() {
+    saveDraft({ category, ...getValues(), photos });
   }
 
   return (
     <Card className='self-start p-5'>
-      <form onSubmit={submit} noValidate className='flex flex-col gap-3.5'>
+      <form
+        onSubmit={handleSubmit(onValid)}
+        noValidate
+        className='flex flex-col gap-3.5'
+      >
         <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
           Report a problem
         </h2>
@@ -155,11 +159,10 @@ function ReportForm({ onCreated }) {
           </div>
         </FieldShell>
 
-        <FieldShell label='Title' htmlFor='title' error={errors.title}>
+        <FieldShell label='Title' htmlFor='title' error={errors.title?.message}>
           <input
             id='title'
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            {...register('title')}
             placeholder='No water for 5 days in Ward 4'
             aria-invalid={!!errors.title}
             className={`${inputBase} ${errors.title ? 'border-danger' : 'border-line-strong'}`}
@@ -169,12 +172,11 @@ function ReportForm({ onCreated }) {
         <FieldShell
           label='Describe the problem'
           htmlFor='desc'
-          error={errors.description}
+          error={errors.description?.message}
         >
           <textarea
             id='desc'
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register('description')}
             placeholder='Tap water has not reached the Ward 4 main road for 5 days. Say who is affected and since when.'
             aria-invalid={!!errors.description}
             className={`${inputBase} h-[84px] resize-none leading-5 ${errors.description ? 'border-danger' : 'border-line-strong'}`}
@@ -190,8 +192,7 @@ function ReportForm({ onCreated }) {
             />
             <input
               id='loc'
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              {...register('location')}
               placeholder='Ward 4 main road, near Shiv Mandir'
               className={`${inputBase} border-line-strong pl-[39px]`}
             />
@@ -255,18 +256,16 @@ function ReportForm({ onCreated }) {
             type='submit'
             size='dash'
             className='flex-1'
-            disabled={submitting}
+            disabled={isSubmitting}
           >
             <Icon name='send' size={16} />
-            {submitting ? 'Submitting…' : 'Submit complaint'}
+            {isSubmitting ? 'Submitting…' : 'Submit complaint'}
           </Button>
           <Button
             type='button'
             variant='secondary'
             size='dash'
-            onClick={() =>
-              saveDraft({ category, title, description, location, photos })
-            }
+            onClick={onSaveDraft}
           >
             Save draft
           </Button>

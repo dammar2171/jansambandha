@@ -42,3 +42,27 @@ export function mapWorkspaceProject(p) {
     comments: p.commentCount ?? 0,
   };
 }
+
+const UPDATE_STATUS_LABEL = {
+  SUBMITTED: 'Submitted',
+  NEEDS_CORRECTION: 'Needs correction',
+  VERIFIED: 'Verified',
+  REJECTED: 'Rejected',
+};
+
+// Map a backend progress update (ProjectUpdate) into the three-column row the
+// contractor "Progress submission history" panel renders: [ref, detail, status].
+export function mapSubmissionRow(u, project) {
+  const date = fmtDate(u.createdAt);
+  const name = project?.name ?? 'Project';
+  const stage = (u.workDescription ?? '').trim();
+  const shortStage = stage.length > 60 ? `${stage.slice(0, 57)}\u2026` : stage;
+  const detail = `${name} \u00b7 ${u.reportedProgress ?? 0}%${
+    shortStage ? ` \u00b7 ${shortStage}` : ''
+  }`;
+  return [
+    `SUB \u00b7 ${date}`,
+    detail,
+    UPDATE_STATUS_LABEL[u.status] ?? 'Submitted',
+  ];
+}
