@@ -17,6 +17,9 @@ import {
 } from '@/lib/wc-store';
 import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { complaintResponseSchema } from '@/lib/schemas';
 
 const FILTERS = [
   ['All', () => true],
@@ -43,39 +46,42 @@ const field =
   'w-full rounded-lg border border-line-strong bg-surface px-[15px] py-2.5 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 function ResponsePanel({ c, projects }) {
-  const [status, setStatus] = useState('Under review');
   const [assignee, setAssignee] = useState(DEPARTMENTS[0]);
   const [projectId, setProjectId] = useState(c.projectId || '');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(complaintResponseSchema),
+    defaultValues: { status: 'Under review', message: '' },
+  });
+  const status = useWatch({ control, name: 'status' });
   const assigning = status === 'Assigned' || status === 'In progress';
 
-  const [sending, setSending] = useState(false);
-
-  async function send(e) {
-    e.preventDefault();
-    if (message.trim().length < 10)
-      return setError(
-        'Write a response of at least 10 characters. The citizen will read it.',
-      );
-    setError('');
-    setSending(true);
+  async function onValid(v) {
+    setFormError('');
+    const token = getToken();
     try {
-      const token = getToken();
-      await api.updateComplaintStatus(token, c._id, STATUS_TO_BACKEND[status]);
-      await api.addComplaintResponse(token, c._id, message.trim());
+      await api.updateComplaintStatus(
+        token,
+        c._id,
+        STATUS_TO_BACKEND[v.status],
+      );
+      await api.addComplaintResponse(token, c._id, v.message.trim());
       // Reflect the change locally (assignee/project links stay on the client)
       respond(c.id, {
-        status,
-        message: message.trim(),
+        status: v.status,
+        message: v.message.trim(),
         assignee: assigning ? assignee : null,
         projectId,
       });
-      setMessage('');
+      reset({ status: 'Under review', message: '' });
     } catch (err) {
-      setError(err.message || 'Could not send the response.');
-    } finally {
-      setSending(false);
+      setFormError(err.message || 'Could not send the response.');
     }
   }
 
@@ -101,10 +107,19 @@ function ResponsePanel({ c, projects }) {
       </Card>
 
       <Card className='p-5'>
-        <form onSubmit={send} noValidate className='flex flex-col gap-3'>
+        <form
+          onSubmit={handleSubmit(onValid)}
+          noValidate
+          className='flex flex-col gap-3'
+        >
           <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
             Respond to citizen
           </h2>
+          {formError && (
+            <p className='text-xs text-danger' role='alert'>
+              {formError}
+            </p>
+          )}
           <div>
             <label
               htmlFor='r-status'
@@ -112,12 +127,7 @@ function ResponsePanel({ c, projects }) {
             >
               New status
             </label>
-            <select
-              id='r-status'
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className={field}
-            >
+            <select id='r-status' {...register('status')} className={field}>
               {STATUSES.map((s) => (
                 <option key={s}>{s}</option>
               ))}
@@ -173,15 +183,14 @@ function ResponsePanel({ c, projects }) {
             </label>
             <textarea
               id='r-msg'
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              {...register('message')}
               placeholder='Say what you will do, or ask for more information'
-              aria-invalid={!!error}
-              className={`${field} h-[84px] resize-none leading-5 ${error ? 'border-danger' : ''}`}
+              aria-invalid={!!errors.message}
+              className={`${field} h-[84px] resize-none leading-5 ${errors.message ? 'border-danger' : ''}`}
             />
-            {error && (
+            {errors.message && (
               <p className='mt-1.5 text-xs text-danger' role='alert'>
-                {error}
+                {errors.message.message}
               </p>
             )}
           </div>
@@ -189,9 +198,9 @@ function ResponsePanel({ c, projects }) {
             type='submit'
             size='dash'
             className='w-full'
-            disabled={sending}
+            disabled={isSubmitting}
           >
-            {sending ? 'Sending\u2026' : 'Send response'}
+            {isSubmitting ? 'Sending\u2026' : 'Send response'}
           </Button>
         </form>
       </Card>
