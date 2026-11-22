@@ -12,6 +12,8 @@ import projectsRoutes from './routes/projects.routes.js';
 import complaintRoutes from './routes/complaint.routes.js';
 import progressUpdateRoutes from './routes/progressUpdate.routes.js';
 import contractorRoutes from './routes/contractor.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 
 import logger from './middlewares/loggerMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -33,6 +35,8 @@ app.use('/api/v1/projects', projectsRoutes);
 app.use('/api/v1/complaints', complaintRoutes);
 app.use('/api/v1/progress-updates', progressUpdateRoutes);
 app.use('/api/v1/contractors', contractorRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
