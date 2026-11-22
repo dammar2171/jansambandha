@@ -10,9 +10,18 @@ import {
   ROLES,
 } from '../constants/index.js';
 
-const createProjectProposal = async (input) => {
-  const proposal = await ProjectProposal.create(input);
-  return proposal;
+const createProjectProposal = async (user, input) => {
+  // Only ward chairpersons create proposals; ward and proposer are taken
+  // from the authenticated user, never from the client.
+  if (user.role !== ROLES.WARD_CHAIR) {
+    throw new AppError('Only ward chairpersons can create proposals', 403);
+  }
+
+  return ProjectProposal.create({
+    ...input,
+    wardId: user.wardId,
+    proposedBy: user._id,
+  });
 };
 
 const listProjectProposals = async (user, query) => {

@@ -9,7 +9,7 @@ import Button from '@/app/components/ui/Button';
 import { CATEGORIES } from '@/lib/mock/citizen';
 import { showToast, upsertProject, useWc } from '@/lib/wc-store';
 import { rs } from '@/lib/wc-score';
-import { getSession, getToken } from '@/lib/session';
+import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { mapProposal } from '@/lib/proposals';
 import { proposalSchema } from '@/lib/schemas';
@@ -49,16 +49,15 @@ export default function ProposalForm({ initial, projectId }) {
 
   async function onValid(v) {
     setFormError('');
-    const session = getSession();
-    const wardId = session?.user?.wardId;
-    const proposedBy = session?.user?._id;
-    if (!projectId && !wardId) {
-      setFormError('Please sign in again to create a proposal.');
+    const token = getToken();
+    if (!token) {
+      setFormError('Please sign in again to save a proposal.');
       return;
     }
 
     // Backend requires a description; reuse benefits, or fall back to the
-    // justification so the required field is always populated.
+    // justification so the required field is always populated. wardId and
+    // proposedBy are derived server-side from the signed-in ward chair.
     const body = {
       title: v.title.trim(),
       description: (v.benefits || '').trim() || v.justification.trim(),
@@ -71,8 +70,8 @@ export default function ProposalForm({ initial, projectId }) {
 
     try {
       const saved = projectId
-        ? await api.updateProposal(getToken(), projectId, body)
-        : await api.createProposal({ ...body, wardId, proposedBy });
+        ? await api.updateProposal(token, projectId, body)
+        : await api.createProposal(token, body);
       const mapped = mapProposal(saved);
       upsertProject(mapped);
       showToast(projectId ? 'Proposal updated' : 'Proposal draft saved');

@@ -3,7 +3,10 @@ import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const createProjectProposal = asyncHandler(async (req, res) => {
-  const data = await projectProposalServices.createProjectProposal(req.body);
+  const data = await projectProposalServices.createProjectProposal(
+    req.user,
+    req.body,
+  );
 
   return res
     .status(201)

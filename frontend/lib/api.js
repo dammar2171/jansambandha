@@ -106,8 +106,8 @@ export const api = {
   // Project proposals (ward chair)
   getProposals: (token) => request('/project-proposals', { token }),
   getProposal: (token, id) => request(`/project-proposals/${id}`, { token }),
-  createProposal: (body) =>
-    request('/project-proposals', { method: 'POST', body }),
+  createProposal: (token, body) =>
+    request('/project-proposals', { method: 'POST', body, token }),
   updateProposal: (token, id, body) =>
     request(`/project-proposals/${id}`, { method: 'PATCH', body, token }),
   submitProposal: (token, id) =>

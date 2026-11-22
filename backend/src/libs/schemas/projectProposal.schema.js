@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { MONGODB_OBJECT_ID_REGEX } from '../../constants/index.js';
 
+// wardId and proposedBy are derived from the authenticated ward chair on the
+// server, never trusted from the client.
 export const createProjectProposalSchema = z.object({
   title: z
     .string()
@@ -9,8 +10,6 @@ export const createProjectProposalSchema = z.object({
     .max(150, 'Title cannot exceed 150 characters'),
 
   description: z.string().trim().min(1, 'Project description is required'),
-
-  wardId: z.string().regex(MONGODB_OBJECT_ID_REGEX, 'Invalid ward ID'),
 
   category: z.string().trim().min(1, 'Project category is required'),
 
@@ -24,14 +23,8 @@ export const createProjectProposalSchema = z.object({
   fiscalYear: z.string().trim().min(1, 'Fiscal year is required'),
 
   justification: z.string().trim().min(1, 'Project justification is required'),
-
-  proposedBy: z
-    .string()
-    .regex(MONGODB_OBJECT_ID_REGEX, 'Invalid user ID')
-    .optional(),
 });
 
-// Fields a ward chair or admin may edit. wardId and proposedBy are not editable.
-export const updateProjectProposalSchema = createProjectProposalSchema
-  .omit({ wardId: true, proposedBy: true })
-  .partial();
+// Fields a ward chair or admin may edit.
+export const updateProjectProposalSchema =
+  createProjectProposalSchema.partial();
