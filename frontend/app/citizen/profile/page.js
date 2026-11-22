@@ -8,50 +8,45 @@ import PasswordField from '@/app/components/ui/PasswordField';
 import { signOut, useSession } from '@/lib/session';
 import { getRole, roleIdFromBackend } from '@/lib/roles';
 import { api } from '@/lib/api';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { changePasswordSchema } from '@/lib/schemas';
 
 function ChangePassword({ token }) {
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
   const [done, setDone] = useState('');
   const [formError, setFormError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { current: '', next: '', confirm: '' },
+  });
 
-  async function submit(e) {
-    e.preventDefault();
-    const errs = {};
-    if (!current) errs.current = 'Enter your current password.';
-    if (next.length < 8)
-      errs.next = 'New password must be at least 8 characters.';
-    else if (next.length > 72)
-      errs.next = 'New password must be at most 72 characters.';
-    if (confirm !== next) errs.confirm = 'Passwords do not match.';
-    setErrors(errs);
+  async function onValid(v) {
     setDone('');
     setFormError('');
-    if (Object.keys(errs).length) return;
-
-    setSaving(true);
     try {
       await api.changePassword(token, {
-        currentPassword: current,
-        newPassword: next,
+        currentPassword: v.current,
+        newPassword: v.next,
       });
       setDone('Password changed successfully.');
-      setCurrent('');
-      setNext('');
-      setConfirm('');
+      reset();
     } catch (err) {
       setFormError(err.message || 'Could not change password.');
-    } finally {
-      setSaving(false);
     }
   }
 
   return (
     <Card className='p-5'>
-      <form onSubmit={submit} noValidate className='flex flex-col gap-4'>
+      <form
+        onSubmit={handleSubmit(onValid)}
+        noValidate
+        className='flex flex-col gap-4'
+      >
         <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
           Change password
         </h2>
@@ -76,27 +71,24 @@ function ChangePassword({ token }) {
         <PasswordField
           label='Current password'
           autoComplete='current-password'
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          error={errors.current}
+          {...register('current')}
+          error={errors.current?.message}
         />
         <PasswordField
           label='New password'
           autoComplete='new-password'
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          error={errors.next}
+          {...register('next')}
+          error={errors.next?.message}
         />
         <PasswordField
           label='Confirm new password'
           autoComplete='new-password'
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          error={errors.confirm}
+          {...register('confirm')}
+          error={errors.confirm?.message}
         />
         <div>
-          <Button type='submit' size='dash' disabled={saving}>
-            {saving ? 'Saving\u2026' : 'Update password'}
+          <Button type='submit' size='dash' disabled={isSubmitting}>
+            {isSubmitting ? 'Saving\u2026' : 'Update password'}
           </Button>
         </div>
       </form>
