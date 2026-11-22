@@ -8,6 +8,8 @@ import {
   mapWorkspaceProject,
   mapSubmissionRow,
   mapInspectionRecord,
+  mapReviewProposal,
+  mapReviewEvent,
 } from '@/lib/workspace';
 
 const MOCK_PROJECTS = [
@@ -312,6 +314,9 @@ export default function RoleWorkspace({ role, section }) {
     [replies, setReplies] = useState({}),
     [selected, setSelected] = useState(MOCK_PROJECTS[0]),
     [submissions, setSubmissions] = useState([]);
+  const [reviewList, setReviewList] = useState([]);
+  const [reviewSel, setReviewSel] = useState(null);
+  const [reviewHistory, setReviewHistory] = useState([]);
   const router = useRouter();
   const session = useSession();
   const signOutNow = () => {
@@ -428,6 +433,43 @@ export default function RoleWorkspace({ role, section }) {
       active = false;
     };
   }, [role, section, projects]);
+
+  // General Admin project review: load real submitted proposals to review.
+  useEffect(() => {
+    if (role !== 'general-admin' || section !== 'project-review') return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (!active) return;
+        const items = (Array.isArray(list) ? list : []).map(mapReviewProposal);
+        if (items.length) setReviewList(items);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [role, section]);
+
+  // Load the selected proposal's review/decision timeline for the review modal.
+  useEffect(() => {
+    if (!reviewSel?.id) return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProposalHistory(token, reviewSel.id)
+      .then((list) => {
+        if (!active) return;
+        setReviewHistory((Array.isArray(list) ? list : []).map(mapReviewEvent));
+      })
+      .catch(() => active && setReviewHistory([]));
+    return () => {
+      active = false;
+    };
+  }, [reviewSel]);
   const cfg = configs[role],
     nav = paths[role],
     isDept = role === 'department',
@@ -829,6 +871,41 @@ export default function RoleWorkspace({ role, section }) {
       </div>
     </Panel>
   );
+  const reviewPanel = () => (
+    <Panel title='Administrative project review'>
+      <p className='mb-4 text-sm text-slate-500'>
+        Review submitted proposals and record an administrative review note.
+        Final approval remains a CAO-only action.
+      </p>
+      <div className='space-y-3'>
+        {reviewList.map((p) => (
+          <div
+            key={p.id}
+            className='flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between'
+          >
+            <div>
+              <p className='font-semibold'>{p.title}</p>
+              <p className='mt-1 text-sm text-slate-500'>
+                {p.ward} · {money(p.budget)}
+              </p>
+            </div>
+            <div className='flex items-center gap-2'>
+              <Badge>{p.status}</Badge>
+              <Button
+                kind='secondary'
+                onClick={() => {
+                  setReviewHistory([]);
+                  setReviewSel(p);
+                }}
+              >
+                Review
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
   const simplePanel = (heading, sub, rows, actionLabel) => (
     <Panel
       title={heading}
@@ -1038,28 +1115,30 @@ export default function RoleWorkspace({ role, section }) {
       </Panel>
     );
   else if (section === 'project-review')
-    body = simplePanel(
-      'Administrative project review',
-      'Review submitted proposals, technical remarks, Assembly decision references and delegation authority. This workspace does not replace CAO-only approval.',
-      [
-        [
-          'Ward 4 Drinking Water Supply',
-          'Assembly decision MEA-2083-045 · Technical review: proceed',
-          'Ready for CAO approval',
-        ],
-        [
-          'Ward 7 Internal Road Improvement',
-          'Budget breakdown requires clarification',
-          'Returned',
-        ],
-        [
-          'Community Health Post Renovation',
-          'Awaiting Assembly decision record',
-          'Under review',
-        ],
-      ],
-      '',
-    );
+    body = reviewList.length
+      ? reviewPanel()
+      : simplePanel(
+          'Administrative project review',
+          'Review submitted proposals, technical remarks, Assembly decision references and delegation authority. This workspace does not replace CAO-only approval.',
+          [
+            [
+              'Ward 4 Drinking Water Supply',
+              'Assembly decision MEA-2083-045 · Technical review: proceed',
+              'Ready for CAO approval',
+            ],
+            [
+              'Ward 7 Internal Road Improvement',
+              'Budget breakdown requires clarification',
+              'Returned',
+            ],
+            [
+              'Community Health Post Renovation',
+              'Awaiting Assembly decision record',
+              'Under review',
+            ],
+          ],
+          '',
+        );
   else if (section === 'citizen-comments') body = commentsPanel();
   else if (section === 'reports')
     body = (
@@ -1462,6 +1541,83 @@ export default function RoleWorkspace({ role, section }) {
               </div>
             </div>
           )}
+        </Modal>
+      )}
+      {reviewSel && (
+        <Modal title='Review proposal' onClose={() => setReviewSel(null)}>
+          <div className='rounded-lg bg-slate-50 p-4 text-sm'>
+            <b>{reviewSel.title}</b>
+            <p className='mt-1 text-slate-500'>
+              {reviewSel.ward} · {money(reviewSel.budget)} · {reviewSel.status}
+            </p>
+          </div>
+          {reviewHistory.length > 0 && (
+            <div className='mt-4'>
+              <h4 className='mb-2 text-sm font-semibold text-slate-700'>
+                Review and decision history
+              </h4>
+              <div className='space-y-2'>
+                {reviewHistory.map((h) => (
+                  <div
+                    key={h.id}
+                    className='rounded-lg border border-slate-200 p-3 text-sm'
+                  >
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='font-medium'>{h.label}</span>
+                      <span className='text-xs text-slate-400'>{h.when}</span>
+                    </div>
+                    {h.remarks && (
+                      <p className='mt-1 text-slate-600'>{h.remarks}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const note = String(new FormData(form).get('note') || '').trim();
+              if (note.length < 1) {
+                notify('Write a review note.');
+                return;
+              }
+              const token = getToken();
+              try {
+                await api.addReview(token, reviewSel.id, note);
+                notify('Review recorded');
+                form.reset();
+                const list = await api.getProposalHistory(token, reviewSel.id);
+                setReviewHistory(
+                  (Array.isArray(list) ? list : []).map(mapReviewEvent),
+                );
+              } catch (err) {
+                notify(err.message || 'Could not record the review.');
+              }
+            }}
+            className='mt-4 space-y-3'
+          >
+            <Field label='Administrative review note'>
+              <textarea
+                name='note'
+                rows='3'
+                required
+                placeholder='Record your administrative remarks for this proposal...'
+                className='w-full rounded-lg border border-slate-200 px-3 py-2'
+              />
+            </Field>
+            <div className='flex justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setReviewSel(null)}
+                className='rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50'
+              >
+                Close
+              </button>
+              <Button>Add review</Button>
+            </div>
+          </form>
         </Modal>
       )}
       {toast && (

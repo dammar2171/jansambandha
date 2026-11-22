@@ -91,3 +91,43 @@ export function mapInspectionRecord(r, project) {
     observation: '',
   };
 }
+
+const PROPOSAL_STATUS_LABEL = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under review',
+  RETURNED: 'Returned',
+  REJECTED: 'Rejected',
+  ASSEMBLY_APPROVED: 'Assembly approved',
+  ADMIN_APPROVED: 'Administratively approved',
+};
+
+// Map a backend project proposal into the row the general-admin review list shows.
+export function mapReviewProposal(p) {
+  return {
+    id: p._id,
+    title: p.title ?? 'Proposal',
+    ward: wardName(p.wardId),
+    budget: p.estimatedBudget ?? 0,
+    status: PROPOSAL_STATUS_LABEL[p.status] ?? 'Draft',
+  };
+}
+
+const APPROVAL_ACTION_LABEL = {
+  TECHNICAL_REVIEW: 'Technical review',
+  ADMIN_REVIEW: 'Administrative review',
+  ASSEMBLY_DECISION: 'Assembly decision',
+  ADMIN_APPROVAL: 'Administratively approved',
+  RETURN: 'Returned for correction',
+  REJECTION: 'Rejected',
+};
+
+// Map a backend approval/review record into a review-history entry.
+export function mapReviewEvent(a) {
+  return {
+    id: a._id,
+    label: APPROVAL_ACTION_LABEL[a.action] ?? a.action ?? 'Review',
+    when: fmtDate(a.decisionDate || a.createdAt),
+    remarks: a.remarks || '',
+  };
+}

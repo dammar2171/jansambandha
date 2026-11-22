@@ -122,6 +122,12 @@ export const api = {
       body: { decision, reason },
       token,
     }),
+  addReview: (token, id, note) =>
+    request(`/project-proposals/${id}/reviews`, {
+      method: 'POST',
+      body: { note },
+      token,
+    }),
 
   // Users (CAO / General Admin)
   getUsers: (token) => request('/users', { token }),
