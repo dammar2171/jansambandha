@@ -1,10 +1,12 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut, useSession } from '@/lib/session';
+import { getToken, signOut, useSession } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapWorkspaceProject } from '@/lib/workspace';
 
-const projects = [
+const MOCK_PROJECTS = [
   {
     id: 'PRJ-2083-014',
     name: 'Ward 4 Drinking Water Supply',
@@ -296,13 +298,14 @@ function Field({ label, children }) {
   );
 }
 export default function RoleWorkspace({ role, section }) {
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
   const [query, setQuery] = useState(''),
     [filter, setFilter] = useState('All'),
     [modal, setModal] = useState(''),
     [toast, setToast] = useState(''),
     [records, setRecords] = useState(inspections),
     [replies, setReplies] = useState({}),
-    [selected, setSelected] = useState(projects[0]),
+    [selected, setSelected] = useState(MOCK_PROJECTS[0]),
     [submissions, setSubmissions] = useState([]);
   const router = useRouter();
   const session = useSession();
@@ -310,6 +313,20 @@ export default function RoleWorkspace({ role, section }) {
     signOut();
     router.replace('/login');
   };
+
+  // Load real projects this role may see; keep mock data if the backend is
+  // unreachable or returns nothing.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setProjects(list.map(mapWorkspaceProject));
+      })
+      .catch(() => {});
+  }, []);
   const cfg = configs[role],
     nav = paths[role],
     isDept = role === 'department',
@@ -343,7 +360,7 @@ export default function RoleWorkspace({ role, section }) {
             p.id.toLowerCase().includes(query.toLowerCase())) &&
           (filter === 'All' || p.status === filter),
       ),
-    [query, filter],
+    [projects, query, filter],
   );
   const tableProjects = () => (
     <Panel
