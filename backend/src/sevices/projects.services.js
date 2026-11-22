@@ -32,13 +32,14 @@ const buildVisibilityFilter = (user) => {
   return { $or: or };
 };
 
-// Attach like/dislike counts, visible comment count, and latest verified
-// progress so a project list is useful on its own (one query each, no N+1).
+// Attach like/dislike counts, visible comment count, latest contractor-reported
+// and department-verified progress, and inspection quality, so a project list
+// is useful on its own (one query each, no N+1).
 const enrichProjects = async (projects) => {
   if (projects.length === 0) return projects;
   const ids = projects.map((p) => p._id);
 
-  const [feedback, inspections] = await Promise.all([
+  const [feedback, inspections, updates] = await Promise.all([
     ProjectFeedback.find({
       projectId: { $in: ids },
       moderationStatus: MODERATION_STATUS.VISIBLE,
@@ -46,8 +47,12 @@ const enrichProjects = async (projects) => {
       .select('projectId reaction comment')
       .lean(),
     ProjectInspection.find({ projectId: { $in: ids } })
-      .select('projectId verifiedProgress inspectionDate')
+      .select('projectId verifiedProgress qualityStatus inspectionDate')
       .sort({ inspectionDate: -1 })
+      .lean(),
+    ProjectUpdate.find({ projectId: { $in: ids } })
+      .select('projectId reportedProgress createdAt')
+      .sort({ createdAt: -1 })
       .lean(),
   ]);
 
@@ -61,20 +66,29 @@ const enrichProjects = async (projects) => {
     stats.set(key, s);
   }
 
-  // inspections are sorted newest first, so the first per project is the latest
-  const verified = new Map();
+  // Lists are sorted newest first, so the first entry per project is the latest.
+  const latestInspection = new Map();
   for (const insp of inspections) {
     const key = String(insp.projectId);
-    if (!verified.has(key)) verified.set(key, insp.verifiedProgress);
+    if (!latestInspection.has(key)) latestInspection.set(key, insp);
+  }
+  const reported = new Map();
+  for (const u of updates) {
+    const key = String(u.projectId);
+    if (!reported.has(key)) reported.set(key, u.reportedProgress);
   }
 
   return projects.map((p) => {
-    const s = stats.get(String(p._id)) || { up: 0, down: 0, comments: 0 };
+    const key = String(p._id);
+    const s = stats.get(key) || { up: 0, down: 0, comments: 0 };
+    const insp = latestInspection.get(key);
     return {
       ...p,
       reactions: { up: s.up, down: s.down },
       commentCount: s.comments,
-      verifiedProgress: verified.get(String(p._id)) ?? 0,
+      verifiedProgress: insp ? insp.verifiedProgress : 0,
+      qualityStatus: insp ? insp.qualityStatus : null,
+      reportedProgress: reported.get(key) ?? 0,
     };
   });
 };
@@ -83,6 +97,7 @@ const listProjects = async (user) => {
   const projects = await Project.find(buildVisibilityFilter(user))
     .populate('wardId', 'wardNumber name')
     .populate('departmentId', 'name')
+    .populate('contractorId', 'fullName')
     .sort({ createdAt: -1 })
     .lean();
   return enrichProjects(projects);
@@ -102,6 +117,7 @@ const getProjectById = async (user, id) => {
   })
     .populate('wardId', 'wardNumber name')
     .populate('departmentId', 'name')
+    .populate('contractorId', 'fullName')
     .lean();
   if (!project) {
     throw new AppError('Project not found', 404);

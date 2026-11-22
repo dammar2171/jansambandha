@@ -11,6 +11,13 @@ const STATUS_LABEL = {
   CANCELLED: 'Cancelled',
 };
 
+const QUALITY_LABEL = {
+  PASS: 'Good',
+  NEEDS_IMPROVEMENT: 'Needs improvement',
+  FAIL: 'Failed',
+  NOT_ASSESSED: 'Not inspected',
+};
+
 const fmtDate = (iso) => {
   if (!iso) return '\u2014';
   const d = new Date(iso);
@@ -37,16 +44,15 @@ export function mapCaoProject(p) {
     title: p.title,
     ward: wardName(p.wardId),
     department: p.departmentId?.name ?? '\u2014',
-    contractor: p.contractorId ? 'Assigned' : 'Unassigned',
+    contractor: p.contractorId?.fullName ?? 'Unassigned',
     status: STATUS_LABEL[p.status] ?? 'Planning',
     budget,
     approved: budget,
     contracted: 0,
     spent: 0,
-    // No separate contractor-reported figure in the list payload yet.
-    reported: verified,
+    reported: p.reportedProgress ?? 0,
     verified,
-    quality: 'Not inspected',
+    quality: QUALITY_LABEL[p.qualityStatus] ?? 'Not inspected',
     due: fmtDate(p.endDate),
   };
 }
