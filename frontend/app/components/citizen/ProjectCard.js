@@ -5,7 +5,7 @@ import Card from '@/app/components/ui/Card';
 import { StatusBadge } from '@/app/components/ui/Badge';
 import { ButtonLink } from '@/app/components/ui/Button';
 import ReactionButton from './ReactionButton';
-import { toggleReaction, useStore } from '@/lib/store';
+import { reactToProject, useStore } from '@/lib/store';
 
 export default function ProjectCard({ project: p }) {
   const reaction = useStore((s) => s.reactions[p.id]);
@@ -53,16 +53,22 @@ export default function ProjectCard({ project: p }) {
           <ReactionButton
             kind='up'
             label='Like'
-            count={p.up + (reaction === 'up' ? 1 : 0)}
+            count={
+              p.up - (p.mine === 'up' ? 1 : 0) + (reaction === 'up' ? 1 : 0)
+            }
             active={reaction === 'up'}
-            onClick={() => toggleReaction(p.id, 'up')}
+            onClick={() => reactToProject(p.id, 'up')}
           />
           <ReactionButton
             kind='down'
             label='Dislike'
-            count={p.down + (reaction === 'down' ? 1 : 0)}
+            count={
+              p.down -
+              (p.mine === 'down' ? 1 : 0) +
+              (reaction === 'down' ? 1 : 0)
+            }
             active={reaction === 'down'}
-            onClick={() => toggleReaction(p.id, 'down')}
+            onClick={() => reactToProject(p.id, 'down')}
           />
           <Link
             href={`/citizen/projects/${p.id}`}

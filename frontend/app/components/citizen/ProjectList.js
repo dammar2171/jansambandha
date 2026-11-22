@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import ProjectCard from './ProjectCard';
-import { setProjects, useStore } from '@/lib/store';
+import { setProjects, setReactions, useStore } from '@/lib/store';
 import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { mapProject } from '@/lib/projects';
@@ -28,8 +28,14 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
     api
       .getProjects(token)
       .then((list) => {
-        if (Array.isArray(list) && list.length)
-          setProjects(list.map(mapProject));
+        if (Array.isArray(list) && list.length) {
+          const mapped = list.map(mapProject);
+          setProjects(mapped);
+          // Reflect the citizen's own like/dislike on each card.
+          setReactions(
+            Object.fromEntries(mapped.map((p) => [p.id, p.mine ?? null])),
+          );
+        }
       })
       .catch(() => {});
   }, []);

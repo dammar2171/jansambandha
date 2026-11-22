@@ -35,11 +35,11 @@ const buildVisibilityFilter = (user) => {
 // Attach like/dislike counts, visible comment count, latest contractor-reported
 // and department-verified progress, and inspection quality, so a project list
 // is useful on its own (one query each, no N+1).
-const enrichProjects = async (projects) => {
+const enrichProjects = async (projects, user) => {
   if (projects.length === 0) return projects;
   const ids = projects.map((p) => p._id);
 
-  const [feedback, inspections, updates] = await Promise.all([
+  const [feedback, inspections, updates, myReactions] = await Promise.all([
     ProjectFeedback.find({
       projectId: { $in: ids },
       moderationStatus: MODERATION_STATUS.VISIBLE,
@@ -54,7 +54,17 @@ const enrichProjects = async (projects) => {
       .select('projectId reportedProgress createdAt')
       .sort({ createdAt: -1 })
       .lean(),
+    user?._id
+      ? ProjectFeedback.find({ projectId: { $in: ids }, userId: user._id })
+          .select('projectId reaction')
+          .lean()
+      : [],
   ]);
+
+  // The current user's own reaction per project, so lists can show it.
+  const myReactionMap = new Map(
+    myReactions.map((m) => [String(m.projectId), m.reaction]),
+  );
 
   const stats = new Map();
   for (const f of feedback) {
@@ -85,6 +95,7 @@ const enrichProjects = async (projects) => {
     return {
       ...p,
       reactions: { up: s.up, down: s.down },
+      myReaction: myReactionMap.get(key) ?? null,
       commentCount: s.comments,
       verifiedProgress: insp ? insp.verifiedProgress : 0,
       qualityStatus: insp ? insp.qualityStatus : null,
@@ -100,7 +111,7 @@ const listProjects = async (user) => {
     .populate('contractorId', 'fullName')
     .sort({ createdAt: -1 })
     .lean();
-  return enrichProjects(projects);
+  return enrichProjects(projects, user);
 };
 
 const listPublicProjects = async () => {
@@ -122,7 +133,7 @@ const getProjectById = async (user, id) => {
   if (!project) {
     throw new AppError('Project not found', 404);
   }
-  const [enriched] = await enrichProjects([project]);
+  const [enriched] = await enrichProjects([project], user);
   return enriched;
 };
 

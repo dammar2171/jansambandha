@@ -1,6 +1,8 @@
 'use client';
 import { create } from 'zustand';
 import { PROJECTS, COMMENTS, COMPLAINTS, NOTIFICATIONS } from './mock/citizen';
+import { getToken } from './session';
+import { api } from './api';
 
 // Citizen app state. Actions are plain exported functions that use the store's
 // setState/getState, so existing imports keep working after the Zustand switch.
@@ -38,6 +40,26 @@ export function toggleReaction(id, kind) {
       [id]: s.reactions[id] === kind ? null : kind,
     },
   }));
+}
+
+// Replace the reaction map (used to hydrate the citizen's reactions from the
+// backend project list).
+export const setReactions = (reactions) => set({ reactions });
+
+// Toggle a reaction optimistically and persist it to the backend. Mock project
+// ids (not 24-char Mongo ids) update locally only.
+export async function reactToProject(id, kind) {
+  const prev = get().reactions[id] ?? null;
+  const next = prev === kind ? null : kind;
+  set((s) => ({ reactions: { ...s.reactions, [id]: next } }));
+  const token = getToken();
+  if (!token || !/^[a-f\d]{24}$/i.test(String(id))) return;
+  try {
+    if (next === null) await api.removeReaction(token, id);
+    else await api.setReaction(token, id, next === 'up' ? 'LIKE' : 'DISLIKE');
+  } catch {
+    set((s) => ({ reactions: { ...s.reactions, [id]: prev } }));
+  }
 }
 
 export function toggleFollow(id) {
