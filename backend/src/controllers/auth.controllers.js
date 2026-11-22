@@ -1,6 +1,8 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/apiResponse.js';
 import authServices from '../sevices/auth.services.js';
+// Register the Municipality model so GET /auth/me can populate municipalityId.
+import '../models/Municipality.js';
 
 const registerCitizen = asyncHandler(async (req, res) => {
   const data = await authServices.registerCitizen(req.body);
@@ -15,6 +17,12 @@ const loginCitizen = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+  // Populate ward and municipality so the profile can show real details.
+  await req.user.populate([
+    { path: 'wardId', select: 'wardNumber name' },
+    { path: 'municipalityId', select: 'name' },
+  ]);
+
   res
     .status(200)
     .json(
