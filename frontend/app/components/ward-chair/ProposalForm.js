@@ -5,8 +5,11 @@ import WcTopBar from '@/app/components/layout/WcTopBar';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
 import { CATEGORIES } from '@/lib/mock/citizen';
-import { saveProposal, useWc } from '@/lib/wc-store';
+import { showToast, upsertProject, useWc } from '@/lib/wc-store';
 import { rs } from '@/lib/wc-score';
+import { getSession, getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapProposal } from '@/lib/proposals';
 
 const fieldClass =
   'w-full rounded-lg border border-line-strong bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20';
@@ -28,15 +31,43 @@ export default function ProposalForm({ initial, projectId }) {
   const update = (key) => (event) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
   const budget = Number(form.budget) || 0;
+  const [saving, setSaving] = useState(false);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
-    const id = saveProposal(projectId, {
-      ...form,
-      budget,
-      households: Number(form.households) || 0,
-    });
-    router.push(`/ward-chair/projects/${id}`);
+    const session = getSession();
+    const wardId = session?.user?.wardId;
+    const proposedBy = session?.user?._id;
+    if (!projectId && !wardId) {
+      showToast('Please sign in again to create a proposal.');
+      return;
+    }
+
+    // Backend requires a description; reuse benefits, or fall back to the
+    // justification so the required field is always populated.
+    const body = {
+      title: form.title.trim(),
+      description: form.benefits.trim() || form.justification.trim(),
+      category: form.category,
+      location: form.place.trim(),
+      estimatedBudget: budget,
+      fiscalYear: '2083/84',
+      justification: form.justification.trim(),
+    };
+
+    setSaving(true);
+    try {
+      const saved = projectId
+        ? await api.updateProposal(getToken(), projectId, body)
+        : await api.createProposal({ ...body, wardId, proposedBy });
+      const mapped = mapProposal(saved);
+      upsertProject(mapped);
+      showToast(projectId ? 'Proposal updated' : 'Proposal draft saved');
+      router.push(`/ward-chair/projects/${mapped.id}`);
+    } catch (err) {
+      showToast(err.message || 'Could not save the proposal.');
+      setSaving(false);
+    }
   }
 
   return (
@@ -84,6 +115,7 @@ export default function ProposalForm({ initial, projectId }) {
               <label className='flex flex-col gap-1.5 text-xs font-medium text-ink-2'>
                 Location
                 <input
+                  required
                   value={form.place}
                   onChange={update('place')}
                   className={fieldClass}
@@ -130,8 +162,12 @@ export default function ProposalForm({ initial, projectId }) {
                 />
               </label>
               <div className='flex justify-end'>
-                <Button type='submit' size='dash'>
-                  {projectId ? 'Save changes' : 'Save as draft'}
+                <Button type='submit' size='dash' disabled={saving}>
+                  {saving
+                    ? 'Saving\u2026'
+                    : projectId
+                      ? 'Save changes'
+                      : 'Save as draft'}
                 </Button>
               </div>
             </form>

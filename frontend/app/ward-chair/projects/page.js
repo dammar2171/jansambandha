@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/app/components/ui/Icon';
 import WcTopBar from '@/app/components/layout/WcTopBar';
@@ -7,7 +7,10 @@ import Card from '@/app/components/ui/Card';
 import { StatusBadge } from '@/app/components/ui/Badge';
 import { ButtonLink } from '@/app/components/ui/Button';
 import { rs } from '@/lib/wc-score';
-import { isEditable, useWc } from '@/lib/wc-store';
+import { isEditable, setProjects, useWc } from '@/lib/wc-store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapProposal } from '@/lib/proposals';
 
 const FILTERS = [
   'All',
@@ -25,6 +28,20 @@ export default function WardProjectsPage() {
     .trim()
     .toLowerCase();
   const [filter, setFilter] = useState('All');
+
+  // Load this ward's real proposals; keep mock data if the backend is
+  // unreachable or returns nothing, so the prototype never looks empty.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setProjects(list.map(mapProposal));
+      })
+      .catch(() => {});
+  }, []);
 
   const list = projects.filter(
     (p) =>

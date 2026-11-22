@@ -1,5 +1,5 @@
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Icon from '@/app/components/ui/Icon';
@@ -12,7 +12,16 @@ import Timeline from '@/app/components/ui/Timeline';
 import { ScoreCard } from '@/app/components/ward-chair/ScorePanel';
 import { downloadCsv } from '@/lib/csv';
 import { rs } from '@/lib/wc-score';
-import { isEditable, showToast, submitProposal, useWc } from '@/lib/wc-store';
+import {
+  isEditable,
+  showToast,
+  submitProposal,
+  upsertProject,
+  useWc,
+} from '@/lib/wc-store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapProposal } from '@/lib/proposals';
 
 export default function WardProjectDetail() {
   return (
@@ -31,6 +40,31 @@ export default function WardProjectDetail() {
 function WardProjectDetailContent() {
   const { id } = useParams();
   const p = useWc((s) => s.projects.find((x) => x.id === id));
+  const [submitting, setSubmitting] = useState(false);
+
+  // Load the real proposal so a direct link works and the data stays fresh.
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProposal(token, id)
+      .then((data) => upsertProject(mapProposal(data)))
+      .catch(() => {});
+  }, [id]);
+
+  async function onSubmit() {
+    const token = getToken();
+    if (!token) return;
+    setSubmitting(true);
+    try {
+      await api.submitProposal(token, id);
+      submitProposal(id); // flip local status + show toast
+    } catch (err) {
+      showToast(err.message || 'Could not submit the proposal.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (!p) {
     return (
@@ -128,13 +162,8 @@ function WardProjectDetailContent() {
               </ButtonLink>
             )}
             {p.status === 'Draft' && (
-              <Button
-                size='dash'
-                onClick={() => {
-                  submitProposal(p.id);
-                }}
-              >
-                Submit to CAO
+              <Button size='dash' onClick={onSubmit} disabled={submitting}>
+                {submitting ? 'Submitting\u2026' : 'Submit to CAO'}
               </Button>
             )}
           </div>
