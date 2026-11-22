@@ -32,6 +32,39 @@ import {
 } from './ui';
 
 export function DashboardPage() {
+  const [projectList, setProjectList] = useState([]);
+  const [proposalList, setProposalList] = useState([]);
+
+  // Load real projects and proposals for the overview; fall back to the sample
+  // figures when the backend is unreachable so the dashboard is never blank.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((d) => {
+        if (Array.isArray(d) && d.length) setProjectList(d.map(mapCaoProject));
+      })
+      .catch(() => {});
+    api
+      .getProposals(token)
+      .then((d) => {
+        if (Array.isArray(d) && d.length)
+          setProposalList(d.map(mapCaoProposal));
+      })
+      .catch(() => {});
+  }, []);
+
+  const totalProjects = projectList.length;
+  const awaiting = proposalList.filter(
+    (p) => p.status === 'Awaiting CAO',
+  ).length;
+  const totalBudget = projectList.reduce((a, p) => a + (p.budget || 0), 0);
+  const atRisk = projectList.filter(
+    (p) => p.status === 'Delayed' || p.reported - p.verified >= 15,
+  ).length;
+  const queue = proposalList.length ? proposalList : proposals;
+
   return (
     <>
       <PageHead
@@ -47,26 +80,24 @@ export function DashboardPage() {
       <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
         <Stat
           label='Total projects · FY 2083/84'
-          value='28'
-          change='+4 this month'
-          detail='Across 9 wards'
+          value={totalProjects ? String(totalProjects) : '28'}
+          detail='Across the municipality'
         />
         <Stat
           label='Awaiting administrative action'
-          value='3'
-          change='Needs attention'
-          detail='2 assembly-approved proposals'
+          value={proposalList.length ? String(awaiting) : '3'}
+          change={awaiting ? 'Needs attention' : undefined}
+          detail='Proposals pending a CAO decision'
         />
         <Stat
           label='Approved municipal budget'
-          value='NPR 84.6M'
-          detail='Of NPR 102.4M estimated'
+          value={projectList.length ? money(totalBudget) : 'NPR 84.6M'}
+          detail='Sum of approved project budgets'
         />
         <Stat
           label='Projects with delivery risk'
-          value='4'
-          change='2 high priority'
-          detail='Based on verified progress'
+          value={projectList.length ? String(atRisk) : '4'}
+          detail='Delayed or verified gap \u2265 15 points'
         />
       </div>
       <div className='mt-5 grid gap-5 xl:grid-cols-[1.55fr_1fr]'>
@@ -85,7 +116,7 @@ export function DashboardPage() {
           <Table
             heads={['Project / Ward', 'Priority', 'Budget estimate', 'Status']}
           >
-            {proposals.slice(0, 3).map((p) => (
+            {queue.slice(0, 3).map((p) => (
               <tr key={p.id}>
                 <td className='py-3 pr-4'>
                   <Link

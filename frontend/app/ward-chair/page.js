@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Icon from '@/app/components/ui/Icon';
@@ -9,9 +10,15 @@ import Button, { ButtonLink } from '@/app/components/ui/Button';
 import DemandCard from '@/app/components/ward-chair/DemandCard';
 import ProposalSuggestion from '@/app/components/ward-chair/ProposalSuggestion';
 import { downloadCsv } from '@/lib/csv';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapComplaint } from '@/lib/complaints';
+import { mapProposal } from '@/lib/proposals';
 import {
   needsResponse,
   selectComplaint,
+  setComplaints,
+  setProjects,
   showToast,
   useWc,
 } from '@/lib/wc-store';
@@ -23,6 +30,27 @@ export default function WardChairDashboard() {
   const complaints = useWc((s) => s.complaints);
   const projects = useWc((s) => s.projects);
   const demand = useWc((s) => s.demand);
+
+  // Hydrate this ward's real complaints and proposals so the overview counts
+  // are live; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getComplaints(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setComplaints(list.map(mapComplaint));
+      })
+      .catch(() => {});
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setProjects(list.map(mapProposal));
+      })
+      .catch(() => {});
+  }, []);
 
   const need = complaints.filter((c) => needsResponse(c.status));
   const inbox = [...need].sort((a, b) => b.age - a.age).slice(0, 3);
@@ -58,7 +86,7 @@ export default function WardChairDashboard() {
     },
     {
       label: 'Average citizen support',
-      value: `${support}%`,
+      value: voted.length ? `${support}%` : '\u2014',
       icon: 'up',
       tone: 'bg-brand-tint text-brand',
     },

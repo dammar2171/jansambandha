@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 import TopBar from '@/app/components/layout/TopBar';
@@ -7,9 +8,10 @@ import { StatusBadge } from '@/app/components/ui/Badge';
 import { ButtonLink } from '@/app/components/ui/Button';
 import Timeline from '@/app/components/ui/Timeline';
 import ProjectList from '@/app/components/citizen/ProjectList';
-import { homeSteps } from '@/lib/complaints';
-import { useSession } from '@/lib/session';
-import { useStore } from '@/lib/store';
+import { homeSteps, mapComplaint } from '@/lib/complaints';
+import { getToken, useSession } from '@/lib/session';
+import { api } from '@/lib/api';
+import { useStore, setComplaints } from '@/lib/store';
 import Icon from '@/app/components/ui/Icon';
 
 export default function CitizenHome() {
@@ -18,6 +20,19 @@ export default function CitizenHome() {
   const projects = useStore((s) => s.projects);
   const reactions = useStore((s) => s.reactions);
   const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
+
+  // Hydrate this citizen's real complaints so the dashboard counts are live.
+  // Projects are already hydrated by the ProjectList rendered below.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getMyComplaints(token)
+      .then((list) => {
+        if (Array.isArray(list)) setComplaints(list.map(mapComplaint));
+      })
+      .catch(() => {});
+  }, []);
 
   const first = (session?.name || 'Ram Sharma').split(' ')[0];
   const open = complaints.filter(

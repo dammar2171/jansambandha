@@ -628,32 +628,66 @@ export default function RoleWorkspace({ role, section }) {
       </div>
     </Panel>
   );
+  // Live dashboard metrics, derived from the real projects this role can see.
+  const dashTotal = projects.length;
+  const dashOngoing = projects.filter((p) => p.status === 'Ongoing').length;
+  const dashCompleted = projects.filter((p) => p.status === 'Completed').length;
+  const dashAwaiting = projects.filter(
+    (p) => (p.reported ?? 0) > (p.verified ?? 0),
+  ).length;
+  const dashQualityFlags = projects.filter(
+    (p) => (p.reported ?? 0) - (p.verified ?? 0) >= 15,
+  ).length;
+  const dashAvg = (key) =>
+    dashTotal
+      ? Math.round(projects.reduce((a, p) => a + (p[key] ?? 0), 0) / dashTotal)
+      : 0;
   const dashboard = () => (
     <>
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
         {(isDept
           ? [
-              ['Assigned projects', '12', 'Across 6 wards'],
-              ['Inspections due', '4', 'Require field visit'],
-              ['Awaiting verification', '3', 'Contractor submissions'],
-              ['Quality flags', '2', 'Require follow-up'],
+              [
+                'Assigned projects',
+                String(dashTotal),
+                'Projects you can act on',
+              ],
+              ['Ongoing', String(dashOngoing), 'Currently in progress'],
+              [
+                'Awaiting verification',
+                String(dashAwaiting),
+                'Reported above verified',
+              ],
+              [
+                'Avg verified progress',
+                `${dashAvg('verified')}%`,
+                'Across assigned work',
+              ],
             ]
           : isCon
             ? [
-                ['Active projects', '3', 'Current assignments'],
-                ['Submissions sent', '14', 'This fiscal year'],
-                ['Observations open', '2', 'Action required'],
-                ['Verified progress', '58%', 'Across active work'],
+                ['Active projects', String(dashTotal), 'Current assignments'],
+                [
+                  'Avg reported progress',
+                  `${dashAvg('reported')}%`,
+                  'Across your work',
+                ],
+                [
+                  'Avg verified progress',
+                  `${dashAvg('verified')}%`,
+                  'Confirmed by department',
+                ],
+                ['Completed', String(dashCompleted), 'Delivered projects'],
               ]
             : [
+                ['Projects managed', String(dashTotal), 'Current fiscal year'],
+                ['Ongoing', String(dashOngoing), 'In delivery'],
+                ['Completed', String(dashCompleted), 'Delivered'],
                 [
-                  'Pending project reviews',
-                  '8',
-                  'Awaiting administrative action',
+                  'Quality flags',
+                  String(dashQualityFlags),
+                  'Verified gap \u2265 15 pts',
                 ],
-                ['Projects managed', '26', 'Current fiscal year'],
-                ['Citizen comments', '41', '7 need response'],
-                ['Returned proposals', '3', 'Awaiting resubmission'],
               ]
         ).map((x) => (
           <Metric key={x[0]} label={x[0]} value={x[1]} sub={x[2]} />
