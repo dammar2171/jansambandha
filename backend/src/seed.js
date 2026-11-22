@@ -206,7 +206,8 @@ export async function buildSeedData() {
       location: 'Baneshwor, Ward 2',
       estimatedBudget: 1200000,
       fiscalYear: FISCAL_YEAR,
-      justification: 'Several households currently lack a reliable water supply.',
+      justification:
+        'Several households currently lack a reliable water supply.',
       status: PROPOSAL_STATUS.UNDER_REVIEW,
       submittedAt: new Date(),
     },
@@ -254,7 +255,8 @@ export async function buildSeedData() {
       inspectorId: ids.deptUser,
       verifiedProgress: 38,
       qualityStatus: QUALITY_STATUS.PASS,
-      observations: 'Work matches the reported progress and meets quality standards.',
+      observations:
+        'Work matches the reported progress and meets quality standards.',
       evidenceUrls: ['https://example.com/evidence/inspection-1.jpg'],
       inspectionDate: new Date(),
     },
@@ -354,9 +356,13 @@ const printPostmanGuide = (users) => {
 };
 
 async function run() {
-  const uri = `mongodb://${config.host}:${config.database_port}/${config.database_name}`;
-  console.log('Connecting to', uri);
-  await mongoose.connect(uri);
+  // Use the same connection the app uses (db.js), so seed and runtime agree.
+  console.log(
+    'Connecting to',
+    config.mongodbUri,
+    `(db: ${config.database_name})`,
+  );
+  await mongoose.connect(config.mongodbUri, { dbName: config.database_name });
   console.log('Connected. Seeding...');
 
   const data = await buildSeedData();
@@ -413,7 +419,10 @@ async function run() {
 }
 
 // Run only when executed directly (not when imported for tests)
-if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('/seed.js')) {
+if (
+  process.argv[1] &&
+  process.argv[1].replace(/\\/g, '/').endsWith('/seed.js')
+) {
   run()
     .then(() => {
       console.log('\nSeed complete.');
