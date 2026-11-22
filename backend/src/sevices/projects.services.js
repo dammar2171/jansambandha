@@ -239,6 +239,32 @@ const getProjectFeedback = async (user, projectId) => {
   return { reactions: { likes, dislikes }, comments };
 };
 
+const deleteComment = async (user, projectId, commentId) => {
+  const feedback = await ProjectFeedback.findOne({
+    _id: commentId,
+    projectId,
+  });
+  if (!feedback || !feedback.comment) {
+    throw new AppError('Comment not found', 404);
+  }
+
+  // The comment author or a moderator (CAO / General Admin) may delete it
+  const isAuthor = String(feedback.userId) === String(user._id);
+  const isModerator = [ROLES.CAO, ROLES.GENERAL_ADMIN].includes(user.role);
+  if (!isAuthor && !isModerator) {
+    throw new AppError('You are not allowed to delete this comment', 403);
+  }
+
+  // Keep the document if a reaction remains; otherwise remove it entirely
+  if (feedback.reaction) {
+    feedback.comment = null;
+    await feedback.save();
+    return feedback;
+  }
+  await feedback.deleteOne();
+  return null;
+};
+
 export default {
   listProjects,
   listPublicProjects,
@@ -250,4 +276,5 @@ export default {
   removeReaction,
   addComment,
   getProjectFeedback,
+  deleteComment,
 };

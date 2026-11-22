@@ -79,6 +79,15 @@ router.post(
   projectControllers.addComment,
 );
 
+// Comment author or moderator (CAO / General Admin): delete a comment
+router.delete(
+  '/:id/comments/:commentId',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validateObjectId('commentId'),
+  projectControllers.deleteComment,
+);
+
 // Anyone allowed to view the project: reaction counts + visible comments
 router.get(
   '/:id/feedback',

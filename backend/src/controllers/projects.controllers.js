@@ -118,6 +118,16 @@ const getProjectFeedback = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Project feedback fetched', data));
 });
 
+const deleteComment = asyncHandler(async (req, res) => {
+  await projectServices.deleteComment(
+    req.user,
+    req.params.id,
+    req.params.commentId,
+  );
+
+  return res.status(200).json(new ApiResponse(200, 'Comment deleted'));
+});
+
 export default {
   listProjects,
   listPublicProjects,
@@ -129,4 +139,5 @@ export default {
   removeReaction,
   addComment,
   getProjectFeedback,
+  deleteComment,
 };
