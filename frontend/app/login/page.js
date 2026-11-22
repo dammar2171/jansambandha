@@ -59,7 +59,7 @@ export default function LoginPage() {
         noValidate
         className='flex flex-col gap-5'
       >
-        <h1 className='text-[30px] font-bold leading-tight text-ink'>
+        <h1 className='text-[32px] font-bold leading-tight text-ink'>
           Sign in to JanSambandha
         </h1>
         <p className='text-sm text-ink-3'>
@@ -106,11 +106,11 @@ export default function LoginPage() {
                     <Icon name={r.icon} />
                   </span>
                   <span
-                    className={`text-[13px] font-semibold ${on ? 'text-brand' : 'text-ink'}`}
+                    className={`text-[14px] font-semibold ${on ? 'text-brand' : 'text-ink'}`}
                   >
                     {r.label}
                   </span>
-                  <span className='text-[11px] text-ink-3'>{r.hint}</span>
+                  <span className='text-[12px] text-ink-3'>{r.hint}</span>
                 </button>
               );
             })}
@@ -134,7 +134,7 @@ export default function LoginPage() {
         />
 
         <div className='flex items-center justify-between'>
-          <label className='flex cursor-pointer items-center gap-2 text-[13px] text-ink-2'>
+          <label className='flex cursor-pointer items-center gap-2 text-[14px] text-ink-2'>
             <input
               type='checkbox'
               checked={remember}
@@ -148,7 +148,7 @@ export default function LoginPage() {
           </label>
           <Link
             href='/forgot-password'
-            className='text-[13px] font-medium text-brand hover:underline'
+            className='text-[14px] font-medium text-brand hover:underline'
           >
             Forgot password?
           </Link>
@@ -158,7 +158,7 @@ export default function LoginPage() {
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </Button>
 
-        <p className='rounded-[10px] border border-line bg-surface-alt p-3.5 text-xs leading-[18px] text-ink-3'>
+        <p className='rounded-[10px] border border-line bg-surface-alt p-3.5 text-xs leading-[19px] text-ink-3'>
           New citizen?{' '}
           <Link
             href='/register'

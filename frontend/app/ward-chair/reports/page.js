@@ -22,10 +22,10 @@ export default function WardReportsPage() {
       <WcTopBar crumbs={[{ label: 'Reports' }]} />
       <main className='flex flex-col gap-6 p-8'>
         <div>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             Reports
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             Ward 4 reports for the annual plan. Choose a report, check the
             preview, then download it.
           </p>
@@ -50,7 +50,7 @@ export default function WardReportsPage() {
                       className={`w-full rounded-lg px-3 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint ring-1 ring-inset ring-brand' : 'hover:bg-surface-alt'}`}
                     >
                       <span
-                        className={`block text-sm font-semibold leading-[18px] ${on ? 'text-brand' : 'text-ink'}`}
+                        className={`block text-sm font-semibold leading-[19px] ${on ? 'text-brand' : 'text-ink'}`}
                       >
                         {r.title}
                       </span>
@@ -67,7 +67,7 @@ export default function WardReportsPage() {
           <Card className='p-5'>
             <div className='mb-4 flex flex-wrap items-start justify-between gap-3'>
               <div>
-                <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+                <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
                   {meta.title}
                 </h2>
                 <p className='text-xs leading-4 text-ink-3'>
@@ -97,8 +97,8 @@ export default function WardReportsPage() {
             </div>
             {rows.length ? (
               <div className='overflow-x-auto rounded-lg border border-line'>
-                <table className='w-full text-left text-[13px]'>
-                  <thead className='bg-surface-alt text-[11px] font-semibold uppercase tracking-wider text-ink-3'>
+                <table className='w-full text-left text-[14px]'>
+                  <thead className='bg-surface-alt text-[12px] font-semibold uppercase tracking-wider text-ink-3'>
                     <tr>
                       {columns.map((c) => (
                         <th key={c} scope='col' className='px-3 py-2.5'>

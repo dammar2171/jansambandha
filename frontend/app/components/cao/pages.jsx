@@ -176,7 +176,7 @@ export function DashboardPage() {
                   <span className='text-slate-500'>{p.verified}% verified</span>
                 </div>
                 <Progress value={p.verified} />
-                <div className='mt-1.5 text-[11px] text-slate-400'>
+                <div className='mt-1.5 text-[12px] text-slate-400'>
                   Contractor reported {p.reported}% · {p.ward}
                 </div>
               </div>
@@ -210,7 +210,7 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
-          <p className='mt-4 text-[11px] text-slate-400'>
+          <p className='mt-4 text-[12px] text-slate-400'>
             Priority score is indicative and uses the proposal weighting model,
             not a substitute for statutory approval.
           </p>
@@ -1189,15 +1189,15 @@ export function DepartmentsPage() {
             <div className='grid grid-cols-3 gap-3'>
               <div>
                 <div className='text-2xl font-semibold'>{d.staff}</div>
-                <div className='text-[11px] text-slate-400'>Staff</div>
+                <div className='text-[12px] text-slate-400'>Staff</div>
               </div>
               <div>
                 <div className='text-2xl font-semibold'>{d.projects}</div>
-                <div className='text-[11px] text-slate-400'>Projects</div>
+                <div className='text-[12px] text-slate-400'>Projects</div>
               </div>
               <div>
                 <div className='text-2xl font-semibold'>{d.inspections}</div>
-                <div className='text-[11px] text-slate-400'>Inspections</div>
+                <div className='text-[12px] text-slate-400'>Inspections</div>
               </div>
             </div>
             <div className='mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs'>
@@ -1261,7 +1261,7 @@ export function DelegationsPage() {
               <td className='py-4 font-semibold'>{r.id}</td>
               <td>{r.official}</td>
               <td>
-                <code className='text-[11px]'>{r.scope}</code>
+                <code className='text-[12px]'>{r.scope}</code>
               </td>
               <td>{r.from}</td>
               <td>{r.to}</td>
@@ -1559,7 +1559,7 @@ export function AuditPage() {
             </tr>
           ))}
         </Table>
-        <div className='mt-4 text-[11px] text-slate-400'>
+        <div className='mt-4 text-[12px] text-slate-400'>
           Audit schema: userId, action, entityType, entityId, oldValue,
           newValue, createdAt.
         </div>

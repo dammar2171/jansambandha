@@ -47,7 +47,7 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
       <div className='flex items-center justify-between gap-4'>
         <h2
           id='plist'
-          className='text-[17px] font-semibold leading-[22px] text-ink'
+          className='text-[18px] font-semibold leading-[24px] text-ink'
         >
           {title}
         </h2>
@@ -60,7 +60,7 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
                 type='button'
                 aria-pressed={on}
                 onClick={() => setFilter(label)}
-                className={`rounded-full px-[15px] py-[5px] text-[13px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                className={`rounded-full px-[15px] py-[5px] text-[14px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                   on
                     ? 'bg-brand text-white'
                     : 'border border-line-strong bg-surface text-ink-2 hover:bg-surface-alt'
@@ -81,7 +81,7 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
           Try another filter or clear the search.
         </div>
       )}
-      <p className='text-xs leading-[15px] text-ink-3'>
+      <p className='text-xs leading-[16px] text-ink-3'>
         Likes and dislikes are community feedback only. They do not approve or
         reject a project.
       </p>

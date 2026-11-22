@@ -31,7 +31,7 @@ export default function BrandPanel() {
       </div>
 
       <div className='relative flex flex-col gap-6'>
-        <h2 className='max-w-[500px] text-[46px] font-bold leading-[54px] text-white'>
+        <h2 className='max-w-[500px] text-[49px] font-bold leading-[58px] text-white'>
           Citizen needs. Government plans. Transparent progress.
         </h2>
         <p className='max-w-[470px] text-base leading-6 text-panel-text'>
@@ -53,7 +53,7 @@ export default function BrandPanel() {
         </ul>
       </div>
 
-      <p className='relative text-[13px] text-side-text'>
+      <p className='relative text-[14px] text-side-text'>
         Kailali Municipality, Sudurpashchim Province
       </p>
     </aside>

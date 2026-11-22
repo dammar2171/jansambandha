@@ -47,7 +47,7 @@ function ChangePassword({ token }) {
         noValidate
         className='flex flex-col gap-4'
       >
-        <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+        <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
           Change password
         </h2>
 
@@ -147,7 +147,7 @@ export default function ProfilePage() {
     <>
       <TopBar crumbs={[{ label: 'Profile' }]} />
       <main className='flex max-w-[560px] flex-col gap-6 p-8'>
-        <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+        <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
           Profile
         </h1>
 

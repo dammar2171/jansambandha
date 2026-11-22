@@ -60,10 +60,10 @@ export default function WardProjectsPage() {
       <main className='flex flex-col gap-6 p-8'>
         <div className='flex items-center justify-between gap-6'>
           <div>
-            <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
               Ward projects
             </h1>
-            <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+            <p className='mt-1 text-sm leading-[18px] text-ink-3'>
               Every proposal and project in Ward 4, from draft to completion.
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function WardProjectsPage() {
               type='button'
               aria-pressed={f === filter}
               onClick={() => setFilter(f)}
-              className={`rounded-full px-[15px] py-[5px] text-[13px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${f === filter ? 'bg-brand text-white' : 'border border-line-strong bg-surface text-ink-2 hover:bg-surface-alt'}`}
+              className={`rounded-full px-[15px] py-[5px] text-[14px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${f === filter ? 'bg-brand text-white' : 'border border-line-strong bg-surface text-ink-2 hover:bg-surface-alt'}`}
             >
               {f}{' '}
               <span className={f === filter ? 'text-white/80' : 'text-ink-3'}>
@@ -98,7 +98,7 @@ export default function WardProjectsPage() {
           <div role='table' aria-label='Ward projects'>
             <div
               role='row'
-              className={`grid ${COLS} gap-3 rounded-lg bg-surface-alt px-3 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3`}
+              className={`grid ${COLS} gap-3 rounded-lg bg-surface-alt px-3 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3`}
             >
               <span role='columnheader'>Project</span>
               <span role='columnheader'>Status</span>
@@ -115,7 +115,7 @@ export default function WardProjectsPage() {
                   <div
                     key={p.id}
                     role='row'
-                    className={`grid ${COLS} items-center gap-3 rounded-lg px-3 py-3 text-[13px] leading-4 hover:bg-surface-alt`}
+                    className={`grid ${COLS} items-center gap-3 rounded-lg px-3 py-3 text-[14px] leading-4 hover:bg-surface-alt`}
                   >
                     <span role='cell' className='min-w-0'>
                       <Link
@@ -156,14 +156,14 @@ export default function WardProjectsPage() {
                       {isEditable(p) && (
                         <Link
                           href={`/ward-chair/projects/${p.id}/edit`}
-                          className='rounded-lg border border-brand px-[11px] py-1 text-[13px] font-semibold text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                          className='rounded-lg border border-brand px-[11px] py-1 text-[14px] font-semibold text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
                         >
                           Edit
                         </Link>
                       )}
                       <Link
                         href={`/ward-chair/projects/${p.id}`}
-                        className='rounded-lg border border-line-strong px-[11px] py-1 text-[13px] font-semibold text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                        className='rounded-lg border border-line-strong px-[11px] py-1 text-[14px] font-semibold text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
                       >
                         View
                       </Link>

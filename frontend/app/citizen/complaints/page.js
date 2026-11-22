@@ -23,14 +23,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { complaintSchema } from '@/lib/schemas';
 
 const inputBase =
-  'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm leading-[17px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
+  'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm leading-[18px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 function FieldShell({ label, htmlFor, error, children }) {
   return (
     <div>
       <label
         htmlFor={htmlFor}
-        className='mb-1.5 block text-xs font-medium leading-[15px] text-ink-2'
+        className='mb-1.5 block text-xs font-medium leading-[16px] text-ink-2'
       >
         {label}
       </label>
@@ -108,12 +108,12 @@ function ReportForm({ onCreated }) {
         noValidate
         className='flex flex-col gap-3.5'
       >
-        <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+        <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
           Report a problem
         </h2>
 
         <fieldset>
-          <legend className='mb-1.5 text-xs font-medium leading-[15px] text-ink-2'>
+          <legend className='mb-1.5 text-xs font-medium leading-[16px] text-ink-2'>
             Category
           </legend>
           <div
@@ -130,7 +130,7 @@ function ReportForm({ onCreated }) {
                   role='radio'
                   aria-checked={on}
                   onClick={() => setCategory(c)}
-                  className={`rounded-full text-[13px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  className={`rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                     on
                       ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
                       : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
@@ -204,7 +204,7 @@ function ReportForm({ onCreated }) {
             className={`flex h-[78px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong bg-surface-alt text-ink-2 transition-colors hover:border-brand hover:text-brand focus-within:outline-2 focus-within:outline-brand ${photos.length >= 4 ? 'pointer-events-none opacity-60' : ''}`}
           >
             <Icon name='cam' size={22} />
-            <span className='text-[13px] font-medium leading-4'>
+            <span className='text-[14px] font-medium leading-4'>
               Add photos (up to 4)
             </span>
             <input
@@ -243,7 +243,7 @@ function ReportForm({ onCreated }) {
         {similar && (
           <div className='flex gap-3 rounded-[10px] border border-brand/20 bg-brand-tint p-3'>
             <Icon name='info' size={18} className='mt-0.5 text-brand' />
-            <p className='text-[13px] leading-[17px] text-ink-2'>
+            <p className='text-[14px] leading-[18px] text-ink-2'>
               {similar} similar {category.toLowerCase()} complaints were
               reported in Ward 4. Yours will be grouped with them so the ward
               sees the demand.
@@ -311,10 +311,10 @@ export default function ComplaintsPage() {
       <TopBar crumbs={[{ label: 'Complaints' }]} />
       <main className='flex flex-col gap-6 p-8'>
         <div className='py-6'>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             Complaints
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             Raise a problem with your ward and follow it until it is resolved.
           </p>
         </div>
@@ -325,7 +325,7 @@ export default function ComplaintsPage() {
           <div className='flex flex-col gap-4'>
             <Card className='p-5'>
               <div className='mb-1.5 flex items-center justify-between'>
-                <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+                <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
                   My complaints
                 </h2>
                 <Badge tone='warn'>{open} open</Badge>
@@ -333,7 +333,7 @@ export default function ComplaintsPage() {
               <div role='table' aria-label='My complaints' className='mt-3'>
                 <div
                   role='row'
-                  className='grid grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3'
+                  className='grid grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3'
                 >
                   <span role='columnheader'>Tracking no</span>
                   <span role='columnheader'>Complaint</span>
@@ -351,7 +351,7 @@ export default function ComplaintsPage() {
                           role='row'
                           aria-selected={on}
                           onClick={() => setSelectedId(c.id)}
-                          className={`grid grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[13px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
+                          className={`grid grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
                         >
                           <span role='cell' className='font-medium text-brand'>
                             {c.id}
@@ -381,10 +381,10 @@ export default function ComplaintsPage() {
               <Card className='flex flex-col gap-3 p-5'>
                 <div className='flex items-start justify-between gap-3'>
                   <div>
-                    <p className='text-xs leading-[15px] text-ink-3'>
+                    <p className='text-xs leading-[16px] text-ink-3'>
                       {selected.id} · {selected.category}
                     </p>
-                    <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+                    <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                       {selected.title}
                     </h2>
                   </div>
@@ -395,16 +395,16 @@ export default function ComplaintsPage() {
                   <div className='flex items-center gap-3 rounded-[10px] border border-line bg-surface-alt p-[13px]'>
                     <Icon name='folder' size={18} className='text-brand' />
                     <div className='min-w-0 flex-1'>
-                      <p className='text-[11px] leading-[13px] text-ink-3'>
+                      <p className='text-[12px] leading-[14px] text-ink-3'>
                         Linked project
                       </p>
-                      <p className='truncate text-[13px] font-semibold leading-4 text-ink'>
+                      <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
                         {linked.title}
                       </p>
                     </div>
                     <Link
                       href={`/citizen/projects/${linked.id}`}
-                      className='rounded-lg border border-brand px-[11px] py-1 text-[13px] font-semibold leading-[17px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                      className='rounded-lg border border-brand px-[11px] py-1 text-[14px] font-semibold leading-[18px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
                     >
                       Open
                     </Link>

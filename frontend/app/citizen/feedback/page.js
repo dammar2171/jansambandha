@@ -28,10 +28,10 @@ export default function FeedbackPage() {
       <main className='flex max-w-[860px] flex-col gap-6 p-8'>
         <div className='flex items-center justify-between gap-6'>
           <div>
-            <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
               My Feedback
             </h1>
-            <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+            <p className='mt-1 text-sm leading-[18px] text-ink-3'>
               Ratings you gave and projects you suggested.
             </p>
           </div>
@@ -42,7 +42,7 @@ export default function FeedbackPage() {
         </div>
 
         <section className='flex flex-col gap-3' aria-labelledby='r'>
-          <h2 id='r' className='text-[17px] font-semibold text-ink'>
+          <h2 id='r' className='text-[18px] font-semibold text-ink'>
             Project ratings
           </h2>
           {rated.length ? (
@@ -59,7 +59,7 @@ export default function FeedbackPage() {
                     {p.title}
                   </Link>
                   {ratings[p.id].text && (
-                    <p className='mt-0.5 text-[13px] text-ink-2'>
+                    <p className='mt-0.5 text-[14px] text-ink-2'>
                       {ratings[p.id].text}
                     </p>
                   )}
@@ -89,7 +89,7 @@ export default function FeedbackPage() {
         </section>
 
         <section className='flex flex-col gap-3' aria-labelledby='s'>
-          <h2 id='s' className='text-[17px] font-semibold text-ink'>
+          <h2 id='s' className='text-[18px] font-semibold text-ink'>
             My suggestions
           </h2>
           {suggestions.length ? (
@@ -103,7 +103,7 @@ export default function FeedbackPage() {
                     {s.id} · {s.category}
                   </p>
                   <p className='text-sm font-semibold text-ink'>{s.title}</p>
-                  <p className='mt-0.5 text-[13px] text-ink-2'>{s.why}</p>
+                  <p className='mt-0.5 text-[14px] text-ink-2'>{s.why}</p>
                 </div>
                 <StatusBadge status={s.status} />
               </Card>

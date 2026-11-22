@@ -32,11 +32,11 @@ const LABELS = ['Very poor', 'Poor', 'Fair', 'Good', 'Very good'];
 function Metric({ label, value, note }) {
   return (
     <div className='rounded-[10px] border border-line bg-surface-alt p-[13px]'>
-      <p className='text-xs leading-[15px] text-ink-3'>{label}</p>
-      <p className='mt-0.5 text-[26px] font-bold leading-[31px] text-ink'>
+      <p className='text-xs leading-[16px] text-ink-3'>{label}</p>
+      <p className='mt-0.5 text-[28px] font-bold leading-[33px] text-ink'>
         {value}
       </p>
-      <p className='mt-0.5 text-[11px] leading-[13px] text-ink-3'>{note}</p>
+      <p className='mt-0.5 text-[12px] leading-[14px] text-ink-3'>{note}</p>
     </div>
   );
 }
@@ -52,14 +52,14 @@ function Comment({ c }) {
       </span>
       <div className='min-w-0 flex-1'>
         <div className='flex flex-wrap items-center gap-2'>
-          <span className='text-[13px] font-semibold leading-4 text-ink'>
+          <span className='text-[14px] font-semibold leading-4 text-ink'>
             {c.who}
           </span>
           {c.role && <Badge tone='brand'>{c.role}</Badge>}
-          <span className='text-xs leading-[15px] text-ink-3'>{c.when}</span>
+          <span className='text-xs leading-[16px] text-ink-3'>{c.when}</span>
         </div>
         <p className='mt-1 text-sm leading-5 text-ink'>{c.text}</p>
-        <div className='mt-1 flex items-center gap-3 text-xs leading-[15px] text-ink-3'>
+        <div className='mt-1 flex items-center gap-3 text-xs leading-[16px] text-ink-3'>
           <button
             type='button'
             onClick={() => document.getElementById('comment-input')?.focus()}
@@ -271,14 +271,14 @@ function ProjectDetailContent() {
         <div className='flex flex-wrap items-center justify-between gap-6'>
           <div>
             <div className='flex flex-wrap items-center gap-3'>
-              <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+              <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
                 {p.title}
               </h1>
               <StatusBadge status={p.status} />
               <Badge>{p.category}</Badge>
               {p.priority != null && <Badge>Priority {p.priority}/100</Badge>}
             </div>
-            <p className='mt-2 text-[13px] leading-[17px] text-ink-3'>
+            <p className='mt-2 text-[14px] leading-[18px] text-ink-3'>
               {p.place} · {p.fy} · {p.dept}
             </p>
           </div>
@@ -313,7 +313,7 @@ function ProjectDetailContent() {
           <div className='flex flex-col gap-4'>
             <Card className='flex flex-col gap-3.5 p-5'>
               <div className='flex items-center justify-between gap-3'>
-                <h2 className='text-base font-semibold leading-[21px] text-ink'>
+                <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Project progress
                 </h2>
                 <Badge tone='ok'>Official-verified by department</Badge>
@@ -356,7 +356,7 @@ function ProjectDetailContent() {
 
             <Card className='flex flex-col gap-3.5 p-5'>
               <div className='flex items-center gap-2.5'>
-                <h2 className='text-base font-semibold leading-[21px] text-ink'>
+                <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Community discussion
                 </h2>
                 <Badge>{total} comments</Badge>
@@ -390,7 +390,7 @@ function ProjectDetailContent() {
                   affects you.
                 </p>
               )}
-              <p className='text-xs leading-[15px] text-ink-3'>
+              <p className='text-xs leading-[16px] text-ink-3'>
                 Comments are moderated. Personal details are never shown.
               </p>
             </Card>
@@ -398,17 +398,17 @@ function ProjectDetailContent() {
 
           <div className='flex flex-col gap-4'>
             <Card className='p-5'>
-              <h2 className='mb-3 text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='mb-3 text-[16px] font-semibold leading-[21px] text-ink'>
                 Project journey
               </h2>
               <Timeline steps={p.journey} />
             </Card>
 
             <Card className='p-5'>
-              <h2 className='mb-2.5 text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='mb-2.5 text-[16px] font-semibold leading-[21px] text-ink'>
                 Budget
               </h2>
-              <dl className='flex flex-col gap-2.5 text-[13px] leading-4'>
+              <dl className='flex flex-col gap-2.5 text-[14px] leading-4'>
                 {[
                   ['Estimated', p.budget.estimated],
                   ['Approved', p.budget.approved],
@@ -424,13 +424,13 @@ function ProjectDetailContent() {
             </Card>
 
             <Card className='flex flex-col gap-3 p-5'>
-              <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                 Your feedback
               </h2>
               {rating ? (
                 <div
                   role='status'
-                  className='rounded-[10px] border border-ok/25 bg-ok-tint p-3 text-[13px] leading-[18px] text-ok'
+                  className='rounded-[10px] border border-ok/25 bg-ok-tint p-3 text-[14px] leading-[19px] text-ok'
                 >
                   You rated this project {rating.stars} of 5 (
                   {LABELS[rating.stars - 1]}).
@@ -479,7 +479,7 @@ function ProjectDetailContent() {
                     value={ratingText}
                     onChange={(e) => setRatingText(e.target.value)}
                     placeholder='Tell us about quality and service'
-                    className='h-16 w-full resize-none rounded-lg border border-line-strong p-3 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20'
+                    className='h-16 w-full resize-none rounded-lg border border-line-strong p-3 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20'
                   />
                   {ratingError && (
                     <p className='text-xs text-danger' role='alert'>

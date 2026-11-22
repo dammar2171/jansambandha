@@ -91,7 +91,7 @@ export default function ProposalForm({ initial, projectId }) {
       />
       <main className='flex flex-col gap-6 p-8'>
         <div>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             {projectId ? 'Edit proposal' : 'Create a proposal'}
           </h1>
           <p className='mt-1 text-sm text-ink-3'>
@@ -194,10 +194,10 @@ export default function ProposalForm({ initial, projectId }) {
             </form>
           </Card>
           <Card className='p-5'>
-            <h2 className='text-[15px] font-semibold text-ink'>
+            <h2 className='text-[16px] font-semibold text-ink'>
               Proposal summary
             </h2>
-            <dl className='mt-3 flex flex-col gap-2 text-[13px]'>
+            <dl className='mt-3 flex flex-col gap-2 text-[14px]'>
               <div className='flex justify-between gap-3'>
                 <dt className='text-ink-3'>Category</dt>
                 <dd className='font-medium text-ink'>{category}</dd>

@@ -30,10 +30,10 @@ export default function CitizenDemandsPage() {
       <WcTopBar crumbs={[{ label: 'Citizen Demands' }]} />
       <main className='flex flex-col gap-6 p-8'>
         <div>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             Citizen demands
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             What residents of Ward 4 are asking for, grouped by problem
             category. Use it as evidence for proposals.
           </p>
@@ -41,13 +41,13 @@ export default function CitizenDemandsPage() {
 
         <div className='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]'>
           <Card className='p-5'>
-            <h2 className='mb-3 text-base font-semibold leading-[21px] text-ink'>
+            <h2 className='mb-3 text-base font-semibold leading-[23px] text-ink'>
               Demand by category
             </h2>
             <div role='table' aria-label='Demand by category'>
               <div
                 role='row'
-                className='grid grid-cols-[minmax(0,1fr)_96px_96px_120px] gap-3 rounded-lg bg-surface-alt px-3 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3'
+                className='grid grid-cols-[minmax(0,1fr)_96px_96px_120px] gap-3 rounded-lg bg-surface-alt px-3 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3'
               >
                 <span role='columnheader'>Category</span>
                 <span role='columnheader'>Complaints</span>
@@ -65,7 +65,7 @@ export default function CitizenDemandsPage() {
                       className='grid grid-cols-[minmax(0,1fr)_96px_96px_120px] items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-alt'
                     >
                       <span role='cell'>
-                        <span className='block text-sm font-semibold leading-[17px] text-ink'>
+                        <span className='block text-sm font-semibold leading-[18px] text-ink'>
                           {d.label}
                         </span>
                         <span className='mt-1.5 flex items-center gap-2'>
@@ -131,7 +131,7 @@ export default function CitizenDemandsPage() {
           <div className='flex flex-col gap-4'>
             <ProposalSuggestion />
             <Card className='p-5'>
-              <h2 className='mb-3 text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='mb-3 text-[16px] font-semibold leading-[21px] text-ink'>
                 Recent citizen suggestions
               </h2>
               <ul className='flex flex-col gap-3'>
@@ -141,10 +141,10 @@ export default function CitizenDemandsPage() {
                     className='flex items-center justify-between gap-3'
                   >
                     <div className='min-w-0'>
-                      <p className='truncate text-[13px] font-semibold leading-4 text-ink'>
+                      <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
                         {s.title}
                       </p>
-                      <p className='text-xs leading-[15px] text-ink-3'>
+                      <p className='text-xs leading-[16px] text-ink-3'>
                         {s.category}
                       </p>
                     </div>

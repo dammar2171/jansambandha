@@ -59,10 +59,10 @@ export default function CitizenHome() {
       <main className='flex flex-col gap-6 p-8'>
         <div className='flex items-center justify-between gap-6'>
           <div>
-            <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
               Namaste, {first}
             </h1>
-            <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+            <p className='mt-1 text-sm leading-[18px] text-ink-3'>
               Ward {session?.ward ?? 4} · Kailali Municipality · Here is what is
               happening in your ward
             </p>
@@ -82,10 +82,10 @@ export default function CitizenHome() {
                 <Icon name={k.icon} size={22} />
               </span>
               <div>
-                <p className='text-[26px] font-bold leading-[31px] text-ink'>
+                <p className='text-[28px] font-bold leading-[33px] text-ink'>
                   {k.value}
                 </p>
-                <p className='text-[13px] leading-4 text-ink-3'>{k.label}</p>
+                <p className='text-[14px] leading-4 text-ink-3'>{k.label}</p>
               </div>
             </Card>
           ))}
@@ -96,10 +96,10 @@ export default function CitizenHome() {
 
           <div className='flex flex-col gap-4'>
             <Card className='flex flex-col gap-3 p-5'>
-              <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                 Need something fixed?
               </h2>
-              <p className='text-[13px] leading-[19px] text-ink-2'>
+              <p className='text-[14px] leading-[21px] text-ink-2'>
                 Tell your ward chairperson. Every complaint gets a tracking
                 number you can follow.
               </p>
@@ -124,7 +124,7 @@ export default function CitizenHome() {
 
             <Card className='flex flex-col gap-3 p-5'>
               <div className='flex items-center justify-between gap-3'>
-                <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+                <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                   My latest complaint
                 </h2>
                 {latest && <StatusBadge status={latest.status} />}
@@ -132,17 +132,17 @@ export default function CitizenHome() {
               {latest ? (
                 <>
                   <Link href='/citizen/complaints' className='group block'>
-                    <p className='text-xs font-semibold leading-[15px] text-brand group-hover:underline'>
+                    <p className='text-xs font-semibold leading-[16px] text-brand group-hover:underline'>
                       {latest.id}
                     </p>
-                    <p className='text-[13px] leading-[17px] text-ink'>
+                    <p className='text-[14px] leading-[18px] text-ink'>
                       {latest.title}
                     </p>
                   </Link>
                   <Timeline steps={homeSteps(latest)} />
                 </>
               ) : (
-                <p className='text-[13px] text-ink-3'>
+                <p className='text-[14px] text-ink-3'>
                   You have not reported a problem yet.
                 </p>
               )}

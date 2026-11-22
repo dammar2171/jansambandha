@@ -17,10 +17,10 @@ export default function ProjectCard({ project: p }) {
     <Card className='flex flex-col gap-3 p-[18px]'>
       <div className='flex items-start justify-between gap-4'>
         <div>
-          <h3 className='text-base font-semibold leading-[21px] text-ink'>
+          <h3 className='text-base font-semibold leading-[23px] text-ink'>
             {p.title}
           </h3>
-          <p className='mt-0.5 text-[13px] leading-4 text-ink-3'>
+          <p className='mt-0.5 text-[14px] leading-4 text-ink-3'>
             {p.category} · {p.place}
             {p.priority != null ? ` · Priority ${p.priority}/100` : ''}
           </p>
@@ -29,7 +29,7 @@ export default function ProjectCard({ project: p }) {
       </div>
 
       <div>
-        <div className='mb-1.5 flex items-center justify-between text-xs leading-[15px] text-ink-2'>
+        <div className='mb-1.5 flex items-center justify-between text-xs leading-[16px] text-ink-2'>
           <span>{p.barNote}</span>
           <span className='font-semibold text-ink'>{p.verified}%</span>
         </div>
@@ -67,14 +67,14 @@ export default function ProjectCard({ project: p }) {
           <Link
             href={`/citizen/projects/${p.id}`}
             aria-label={`${p.commentCount + added} comments`}
-            className='inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+            className='inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-[14px] font-medium text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
           >
             <Icon name='msg' size={15} />
             {p.commentCount + added}
           </Link>
         </div>
         <div className='flex items-center gap-3.5'>
-          <span className='text-[13px] font-medium text-ink'>
+          <span className='text-[14px] font-medium text-ink'>
             {p.cardBudget}
           </span>
           <ButtonLink

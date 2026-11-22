@@ -16,7 +16,7 @@ export default function TopBarView({
     <header className='flex h-16 shrink-0 items-center gap-4 border-b border-line bg-surface px-8 print:hidden'>
       <nav
         aria-label='Breadcrumb'
-        className='flex min-w-0 flex-1 items-center gap-2 text-[13px] leading-4'
+        className='flex min-w-0 flex-1 items-center gap-2 text-[14px] leading-4'
       >
         {crumbs.map((c, i) => (
           <span key={c.label} className='flex min-w-0 items-center gap-2'>
@@ -53,11 +53,11 @@ export default function TopBarView({
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder='Search projects, complaints…'
-          className='h-8 w-full rounded-lg border border-line bg-surface-alt pl-9 pr-3 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20'
+          className='h-8 w-full rounded-lg border border-line bg-surface-alt pl-9 pr-3 text-[14px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20'
         />
       </label>
 
-      <span className='rounded-full bg-brand-tint px-2.5 py-[3px] text-xs font-semibold leading-[15px] text-brand'>
+      <span className='rounded-full bg-brand-tint px-2.5 py-[3px] text-xs font-semibold leading-[16px] text-brand'>
         FY 2083/84
       </span>
 

@@ -85,10 +85,10 @@ export default function WardChairDashboard() {
       <main className='flex flex-col gap-6 p-8'>
         <div className='flex flex-wrap items-center justify-between gap-6'>
           <div>
-            <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
               Ward 4 overview
             </h1>
-            <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+            <p className='mt-1 text-sm leading-[18px] text-ink-3'>
               Understand what residents need, then turn it into proposals.
             </p>
           </div>
@@ -113,10 +113,10 @@ export default function WardChairDashboard() {
                 <Icon name={k.icon} size={22} />
               </span>
               <div>
-                <p className='text-[26px] font-bold leading-[31px] text-ink'>
+                <p className='text-[28px] font-bold leading-[33px] text-ink'>
                   {k.value}
                 </p>
-                <p className='text-[13px] leading-4 text-ink-3'>{k.label}</p>
+                <p className='text-[14px] leading-4 text-ink-3'>{k.label}</p>
               </div>
             </Card>
           ))}
@@ -128,14 +128,14 @@ export default function WardChairDashboard() {
 
             <Card className='p-5'>
               <div className='mb-3 flex items-center justify-between'>
-                <h2 className='text-base font-semibold leading-[21px] text-ink'>
+                <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Complaint inbox
                 </h2>
                 <div className='flex items-center gap-3'>
                   <Badge tone='warn'>{need.length} need response</Badge>
                   <Link
                     href='/ward-chair/complaints'
-                    className='text-[13px] font-medium text-brand hover:underline'
+                    className='text-[14px] font-medium text-brand hover:underline'
                   >
                     View all
                   </Link>
@@ -144,7 +144,7 @@ export default function WardChairDashboard() {
               <div role='table' aria-label='Complaint inbox'>
                 <div
                   role='row'
-                  className={`grid ${COLS} gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3`}
+                  className={`grid ${COLS} gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3`}
                 >
                   <span role='columnheader'>Tracking no</span>
                   <span role='columnheader'>Complaint</span>
@@ -161,7 +161,7 @@ export default function WardChairDashboard() {
                       <div
                         key={c.id}
                         role='row'
-                        className={`grid ${COLS} items-center gap-2 px-2 py-[13px] text-[13px] leading-4`}
+                        className={`grid ${COLS} items-center gap-2 px-2 py-[13px] text-[14px] leading-4`}
                       >
                         <span role='cell' className='font-medium text-ink'>
                           {c.id}
@@ -207,12 +207,12 @@ export default function WardChairDashboard() {
             <ProposalSuggestion />
             <Card className='p-5'>
               <div className='mb-3 flex items-center justify-between'>
-                <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+                <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                   My proposals
                 </h2>
                 <Link
                   href='/ward-chair/projects'
-                  className='text-[13px] font-medium text-brand hover:underline'
+                  className='text-[14px] font-medium text-brand hover:underline'
                 >
                   View all
                 </Link>
@@ -232,10 +232,10 @@ export default function WardChairDashboard() {
                         href={`/ward-chair/projects/${p.id}`}
                         className='min-w-0 hover:text-brand'
                       >
-                        <p className='truncate text-[13px] font-semibold leading-4 text-ink'>
+                        <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
                           {p.title}
                         </p>
-                        <p className='truncate text-xs leading-[15px] text-ink-3'>
+                        <p className='truncate text-xs leading-[16px] text-ink-3'>
                           {p.statusNote}
                         </p>
                       </Link>

@@ -90,16 +90,16 @@ function ResponsePanel({ c, projects }) {
       <Card className='flex flex-col gap-3 p-5'>
         <div className='flex items-start justify-between gap-3'>
           <div>
-            <p className='text-xs leading-[15px] text-ink-3'>
+            <p className='text-xs leading-[16px] text-ink-3'>
               {c.id} · {c.category} · {c.age} d old
             </p>
-            <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+            <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
               {c.title}
             </h2>
           </div>
           <StatusBadge status={c.status} />
         </div>
-        <p className='text-[13px] leading-[19px] text-ink-2'>{c.description}</p>
+        <p className='text-[14px] leading-[21px] text-ink-2'>{c.description}</p>
         <p className='text-xs text-ink-3'>
           Reported by {c.by} · {c.location}
         </p>
@@ -112,7 +112,7 @@ function ResponsePanel({ c, projects }) {
           noValidate
           className='flex flex-col gap-3'
         >
-          <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+          <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
             Respond to citizen
           </h2>
           {formError && (
@@ -249,10 +249,10 @@ export default function WardComplaintsPage() {
       <WcTopBar crumbs={[{ label: 'Complaints' }]} />
       <main className='flex flex-col gap-6 p-8'>
         <div>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             Complaints
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             Respond to residents, assign the work and follow every complaint
             until it is resolved.
           </p>
@@ -262,7 +262,7 @@ export default function WardComplaintsPage() {
           <Card className='p-5'>
             <div className='mb-3 flex flex-wrap items-center justify-between gap-3'>
               <div className='flex items-center gap-3'>
-                <h2 className='text-base font-semibold leading-[21px] text-ink'>
+                <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Complaint inbox
                 </h2>
                 <Badge tone='warn'>{need} need response</Badge>
@@ -278,7 +278,7 @@ export default function WardComplaintsPage() {
                     type='button'
                     aria-pressed={l === filter}
                     onClick={() => setFilter(l)}
-                    className={`rounded-full px-[13px] py-[4px] text-[13px] font-medium leading-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${l === filter ? 'bg-brand text-white' : 'border border-line-strong text-ink-2 hover:bg-surface-alt'}`}
+                    className={`rounded-full px-[13px] py-[4px] text-[14px] font-medium leading-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${l === filter ? 'bg-brand text-white' : 'border border-line-strong text-ink-2 hover:bg-surface-alt'}`}
                   >
                     {l}
                   </button>
@@ -288,7 +288,7 @@ export default function WardComplaintsPage() {
             <div role='table' aria-label='Complaint inbox'>
               <div
                 role='row'
-                className={`grid ${COLS} gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3`}
+                className={`grid ${COLS} gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3`}
               >
                 <span role='columnheader'>Tracking no</span>
                 <span role='columnheader'>Complaint</span>
@@ -310,7 +310,7 @@ export default function WardComplaintsPage() {
                           setFilter('All');
                           selectComplaint(c.id);
                         }}
-                        className={`grid ${COLS} items-center gap-2 rounded-lg px-2 py-3 text-left text-[13px] leading-4 focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
+                        className={`grid ${COLS} items-center gap-2 rounded-lg px-2 py-3 text-left text-[14px] leading-4 focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
                       >
                         <span role='cell' className='font-medium text-brand'>
                           {c.id}

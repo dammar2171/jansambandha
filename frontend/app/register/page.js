@@ -82,7 +82,7 @@ export default function RegisterPage() {
         noValidate
         className='flex flex-col gap-5'
       >
-        <h1 className='text-[30px] font-bold leading-tight text-ink'>
+        <h1 className='text-[32px] font-bold leading-tight text-ink'>
           Create a citizen account
         </h1>
         <p className='text-sm text-ink-3'>
@@ -141,7 +141,7 @@ export default function RegisterPage() {
         <Button type='submit' disabled={isSubmitting} className='w-full'>
           {isSubmitting ? 'Creating account…' : 'Create account'}
         </Button>
-        <p className='text-center text-[13px] text-ink-2'>
+        <p className='text-center text-[14px] text-ink-2'>
           Already registered?{' '}
           <Link
             href='/login'

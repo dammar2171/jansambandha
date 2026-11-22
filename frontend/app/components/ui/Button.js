@@ -7,9 +7,9 @@ const VARIANTS = {
   ghost: "text-brand hover:bg-brand-tint",
 };
 const SIZES = {
-  md: "px-4 py-3.5 text-[15px]",
-  sm: "px-3 py-2 text-[13px]",
-  dash: "px-3 py-2.5 text-[13px]",
+  md: "px-4 py-3.5 text-[16px]",
+  sm: "px-3 py-2 text-[14px]",
+  dash: "px-3 py-2.5 text-[14px]",
   xs: "px-2.5 py-1.5 text-xs",
 };
 

@@ -40,10 +40,10 @@ export default function SuggestPage() {
       />
       <main className='flex flex-col gap-6 p-8'>
         <div>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
             Suggest a project
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             Tell your ward chairperson what Ward 4 needs next. Suggestions feed
             into the next annual plan.
           </p>

@@ -37,12 +37,12 @@ export default function CaoShell({ children }) {
           </div>
           <div>
             <div className='font-semibold tracking-wide'>JanSambandha</div>
-            <div className='text-[11px] text-slate-300'>
+            <div className='text-[12px] text-slate-300'>
               Municipal governance
             </div>
           </div>
         </div>
-        <div className='px-5 pt-6 pb-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400'>
+        <div className='px-5 pt-6 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-400'>
           Administration
         </div>
         <nav className='flex gap-1 overflow-x-auto px-3 pb-3 md:block'>
@@ -50,12 +50,12 @@ export default function CaoShell({ children }) {
             <Link
               key={href}
               href={href}
-              className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-[13px] transition ${path === href ? 'bg-[#24496f] text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+              className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-[14px] transition ${path === href ? 'bg-[#24496f] text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
             >
               <span className='w-5 text-center text-base'>{icon}</span>
               {label}
               {href === '/cao/project-approvals' && (
-                <span className='ml-auto rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-slate-900'>
+                <span className='ml-auto rounded bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-slate-900'>
                   3
                 </span>
               )}

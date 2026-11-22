@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Scale the whole UI up a little: all rem-based text and spacing grow from
+   this root size (default 16px). Paired with larger fixed px type below. */
+html {
+  font-size: 17px;
+}
+
 :root {
   --canvas: #f1f5f9;
   --surface: #ffffff;
@@ -56,8 +62,8 @@
   --color-danger-tint: var(--danger-tint);
   --color-info: var(--info);
   --color-info-tint: var(--info-tint);
-  --font-sans: var(--font-plex), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  --font-sans: var(--font-roboto), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
   --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
 }
 
