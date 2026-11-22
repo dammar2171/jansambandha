@@ -13,6 +13,7 @@ import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
 import { mapUser } from '@/lib/cao/users';
+import { mapCaoProject } from '@/lib/cao/projects';
 import {
   PageHead,
   Panel,
@@ -614,7 +615,22 @@ export function ApprovalDetail({ id }) {
 export function ProjectsPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('All');
-  const rows = projects.filter(
+  const [items, setItems] = useState(projects);
+
+  // Load real projects; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setItems(list.map(mapCaoProject));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = items.filter(
     (p) =>
       (status === 'All' || p.status === status) &&
       `${p.title} ${p.id} ${p.ward}`.toLowerCase().includes(q.toLowerCase()),
@@ -713,7 +729,28 @@ export function ProjectsPage() {
   );
 }
 export function ProjectDetail({ id }) {
-  const p = projects.find((x) => x.id === id) || projects[0];
+  const [p, setP] = useState(null);
+
+  // Load the real project so a direct link works.
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProject(token, id)
+      .then((data) => setP(mapCaoProject(data)))
+      .catch(() => {});
+  }, [id]);
+
+  if (!p) {
+    return (
+      <PageHead
+        eyebrow='All projects / Project record'
+        title='Loading project'
+        description={id}
+      />
+    );
+  }
+
   return (
     <>
       <PageHead
