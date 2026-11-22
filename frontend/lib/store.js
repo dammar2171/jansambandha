@@ -1,9 +1,10 @@
 'use client';
-import { useSyncExternalStore } from 'react';
+import { create } from 'zustand';
 import { PROJECTS, COMMENTS, COMPLAINTS, NOTIFICATIONS } from './mock/citizen';
 
-// In-memory store. Resets on full page reload. Swap these actions for API calls later.
-let state = {
+// Citizen app state. Actions are plain exported functions that use the store's
+// setState/getState, so existing imports keep working after the Zustand switch.
+export const useStore = create(() => ({
   projects: PROJECTS,
   comments: COMMENTS,
   complaints: COMPLAINTS,
@@ -16,21 +17,10 @@ let state = {
   draft: null,
   search: '',
   toast: null,
-};
+}));
 
-const subs = new Set();
-const subscribe = (fn) => (subs.add(fn), () => subs.delete(fn));
-const set = (patch) => {
-  state = { ...state, ...patch };
-  subs.forEach((fn) => fn());
-};
-
-export const useStore = (selector) =>
-  useSyncExternalStore(
-    subscribe,
-    () => selector(state),
-    () => selector(state),
-  );
+const set = useStore.setState;
+const get = useStore.getState;
 
 let toastTimer;
 export function showToast(message) {
@@ -42,17 +32,17 @@ export function showToast(message) {
 export const setSearch = (search) => set({ search });
 
 export function toggleReaction(id, kind) {
-  set({
+  set((s) => ({
     reactions: {
-      ...state.reactions,
-      [id]: state.reactions[id] === kind ? null : kind,
+      ...s.reactions,
+      [id]: s.reactions[id] === kind ? null : kind,
     },
-  });
+  }));
 }
 
 export function toggleFollow(id) {
-  const on = !state.following[id];
-  set({ following: { ...state.following, [id]: on } });
+  const on = !get().following[id];
+  set((s) => ({ following: { ...s.following, [id]: on } }));
   showToast(
     on
       ? 'You will get updates on this project'
@@ -71,16 +61,16 @@ export function addComment(id, text) {
     likes: 0,
     mine: true,
   };
-  set({
-    comments: { ...state.comments, [id]: [...(state.comments[id] || []), c] },
-  });
+  set((s) => ({
+    comments: { ...s.comments, [id]: [...(s.comments[id] || []), c] },
+  }));
   showToast('Comment posted');
 }
 
 export function toggleCommentLike(cid) {
-  set({
-    likedComments: { ...state.likedComments, [cid]: !state.likedComments[cid] },
-  });
+  set((s) => ({
+    likedComments: { ...s.likedComments, [cid]: !s.likedComments[cid] },
+  }));
 }
 
 export function reportComment() {
@@ -88,7 +78,7 @@ export function reportComment() {
 }
 
 export function submitRating(id, stars, text) {
-  set({ ratings: { ...state.ratings, [id]: { stars, text } } });
+  set((s) => ({ ratings: { ...s.ratings, [id]: { stars, text } } }));
   showToast('Thank you for your feedback');
 }
 
@@ -109,7 +99,7 @@ const MONTHS = [
 
 export function addComplaint(data) {
   const next =
-    Math.max(...state.complaints.map((c) => Number(c.id.split('-')[2]))) + 1;
+    Math.max(...get().complaints.map((c) => Number(c.id.split('-')[2]))) + 1;
   const id = `WC-2083-${String(next).padStart(4, '0')}`;
   const d = new Date();
   const date = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
@@ -125,7 +115,7 @@ export function addComplaint(data) {
     projectId: data.category === 'Water' ? 'water' : null,
     events: [{ status: 'Submitted', who: 'Ram Sharma', date, time }],
   };
-  set({ complaints: [complaint, ...state.complaints], draft: null });
+  set((s) => ({ complaints: [complaint, ...s.complaints], draft: null }));
   showToast(`Complaint ${id} submitted`);
   return complaint;
 }
@@ -143,33 +133,35 @@ export const setProjects = (projects) => set({ projects });
 
 // Prepend a single complaint (already in store shape)
 export const prependComplaint = (complaint) =>
-  set({ complaints: [complaint, ...state.complaints], draft: null });
+  set((s) => ({ complaints: [complaint, ...s.complaints], draft: null }));
 
 export const markRead = (id) =>
-  set({
-    notifications: state.notifications.map((n) =>
+  set((s) => ({
+    notifications: s.notifications.map((n) =>
       n.id === id ? { ...n, read: true } : n,
     ),
-  });
+  }));
 
 export const markAllRead = () =>
-  set({
-    notifications: state.notifications.map((n) => ({ ...n, read: true })),
-  });
+  set((s) => ({
+    notifications: s.notifications.map((n) => ({ ...n, read: true })),
+  }));
 
 export function clearRating(id) {
-  const next = { ...state.ratings };
-  delete next[id];
-  set({ ratings: next });
+  set((s) => {
+    const next = { ...s.ratings };
+    delete next[id];
+    return { ratings: next };
+  });
 }
 
 export function addSuggestion(data) {
-  const s = {
-    id: `SG-${String(state.suggestions.length + 1).padStart(4, '0')}`,
+  const suggestion = {
+    id: `SG-${String(get().suggestions.length + 1).padStart(4, '0')}`,
     ...data,
     status: 'Submitted',
   };
-  set({ suggestions: [s, ...state.suggestions] });
+  set((s) => ({ suggestions: [suggestion, ...s.suggestions] }));
   showToast('Suggestion sent to your ward chairperson');
-  return s;
+  return suggestion;
 }
