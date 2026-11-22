@@ -36,7 +36,10 @@ const createComplaint = async (user, input) => {
     });
   } catch (err) {
     if (err.code === 11000) {
-      throw new AppError('Could not generate a tracking code, please retry', 409);
+      throw new AppError(
+        'Could not generate a tracking code, please retry',
+        409,
+      );
     }
     throw err;
   }
@@ -62,4 +65,76 @@ const listComplaints = async (user) => {
   return Complaint.find(filter).sort({ createdAt: -1 });
 };
 
-export default { createComplaint, listComplaints };
+// Who may view a complaint: owner citizen, responsible ward chair, CAO / General Admin
+const canViewComplaint = (user, complaint) => {
+  switch (user.role) {
+    case ROLES.CAO:
+    case ROLES.GENERAL_ADMIN:
+      return true;
+    case ROLES.WARD_CHAIR:
+      return String(complaint.wardId) === String(user.wardId);
+    case ROLES.CITIZEN:
+      return String(complaint.citizenId) === String(user._id);
+    default:
+      return false;
+  }
+};
+
+// Who may manage (update/respond to) a complaint: responsible ward chair, CAO / General Admin
+const canManageComplaint = (user, complaint) => {
+  if ([ROLES.CAO, ROLES.GENERAL_ADMIN].includes(user.role)) {
+    return true;
+  }
+  if (user.role === ROLES.WARD_CHAIR) {
+    return String(complaint.wardId) === String(user.wardId);
+  }
+  return false;
+};
+
+const getComplaintById = async (user, id) => {
+  const complaint = await Complaint.findById(id);
+  if (!complaint) {
+    throw new AppError('Complaint not found', 404);
+  }
+  if (!canViewComplaint(user, complaint)) {
+    throw new AppError('You are not allowed to view this complaint', 403);
+  }
+  return complaint;
+};
+
+const updateComplaintStatus = async (user, id, updates) => {
+  const complaint = await Complaint.findById(id);
+  if (!complaint) {
+    throw new AppError('Complaint not found', 404);
+  }
+  if (!canManageComplaint(user, complaint)) {
+    throw new AppError('You are not allowed to update this complaint', 403);
+  }
+
+  // status and/or assignedTo, already validated by the schema
+  Object.assign(complaint, updates);
+  await complaint.save();
+  return complaint;
+};
+
+const addComplaintResponse = async (user, id, message) => {
+  const complaint = await Complaint.findById(id);
+  if (!complaint) {
+    throw new AppError('Complaint not found', 404);
+  }
+  if (!canManageComplaint(user, complaint)) {
+    throw new AppError('You are not allowed to respond to this complaint', 403);
+  }
+
+  complaint.responses.push({ authorId: user._id, message });
+  await complaint.save();
+  return complaint;
+};
+
+export default {
+  createComplaint,
+  listComplaints,
+  getComplaintById,
+  updateComplaintStatus,
+  addComplaintResponse,
+};

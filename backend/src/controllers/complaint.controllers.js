@@ -18,4 +18,45 @@ const listComplaints = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Complaints fetched successfully', data));
 });
 
-export default { createComplaint, listComplaints };
+const getComplaintById = asyncHandler(async (req, res) => {
+  const data = await complaintServices.getComplaintById(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Complaint fetched successfully', data));
+});
+
+const updateComplaintStatus = asyncHandler(async (req, res) => {
+  const data = await complaintServices.updateComplaintStatus(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Complaint updated successfully', data));
+});
+
+const addComplaintResponse = asyncHandler(async (req, res) => {
+  const data = await complaintServices.addComplaintResponse(
+    req.user,
+    req.params.id,
+    req.body.message,
+  );
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, 'Response sent successfully', data));
+});
+
+export default {
+  createComplaint,
+  listComplaints,
+  getComplaintById,
+  updateComplaintStatus,
+  addComplaintResponse,
+};
