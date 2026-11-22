@@ -3,6 +3,7 @@ import userControllers from '../controllers/user.controllers.js';
 import validate from '../middlewares/validate.js';
 import validateObjectId from '../middlewares/validateObjectId.js';
 import authMiddleware from '../middlewares/authenticate.js';
+import { authLimiter } from '../middlewares/rateLimiter.js';
 import {
   createOfficialUserSchema,
   updateAccountStatusSchema,
@@ -14,6 +15,7 @@ const router = express.Router();
 // Public: official / contractor login
 router.post(
   '/login',
+  authLimiter,
   validate(officialLoginSchema),
   userControllers.loginOfficial,
 );

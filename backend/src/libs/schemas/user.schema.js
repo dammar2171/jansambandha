@@ -4,6 +4,7 @@ import {
   MONGODB_OBJECT_ID_REGEX,
   ROLES,
 } from '../../constants/index.js';
+import { isValidFullName } from '../../helper/validate.js';
 
 export const userRoleSchema = z.enum(Object.values(ROLES));
 
@@ -13,9 +14,16 @@ const objectIdSchema = z
   .string()
   .regex(MONGODB_OBJECT_ID_REGEX, 'Invalid MongoDB ObjectId');
 
+const fullNameSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(100)
+  .refine(isValidFullName, 'Invalid full name');
+
 // Public citizen registration
 export const citizenRegisterSchema = z.object({
-  fullName: z.string().trim().min(2).max(100),
+  fullName: fullNameSchema,
 
   email: z.string().trim().email().toLowerCase(),
 
@@ -50,7 +58,7 @@ export const changePasswordSchema = z.object({
 // Official account creation
 export const createOfficialUserSchema = z
   .object({
-    fullName: z.string().trim().min(2).max(100),
+    fullName: fullNameSchema,
 
     email: z.string().trim().email().toLowerCase(),
 
