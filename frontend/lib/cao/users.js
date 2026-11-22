@@ -17,11 +17,30 @@ const STATUS_LABEL = {
 
 const scopeOf = (u) => {
   if (u.role === 'ward' || u.role === 'citizen') {
-    return u.wardId?.wardNumber != null ? `Ward ${u.wardId.wardNumber}` : 'Ward';
+    return u.wardId?.wardNumber != null
+      ? `Ward ${u.wardId.wardNumber}`
+      : 'Ward';
   }
   if (u.role === 'department') return u.departmentId?.name ?? 'Department';
   if (u.role === 'contractor') return 'Assigned projects';
   return 'Municipality';
+};
+
+// Roles the CAO can create (citizens self-register) and their backend values.
+export const OFFICIAL_ROLES = [
+  'Ward Chair',
+  'Department',
+  'General Admin',
+  'CAO',
+  'Contractor',
+];
+
+export const roleToBackend = {
+  'Ward Chair': 'ward',
+  Department: 'department',
+  'General Admin': 'generalAdmin',
+  CAO: 'cao',
+  Contractor: 'contractor',
 };
 
 export function mapUser(u) {

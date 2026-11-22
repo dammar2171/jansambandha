@@ -12,7 +12,7 @@ import {
 import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
-import { mapUser } from '@/lib/cao/users';
+import { OFFICIAL_ROLES, mapUser, roleToBackend } from '@/lib/cao/users';
 import { mapCaoProject } from '@/lib/cao/projects';
 import {
   PageHead,
@@ -869,14 +869,19 @@ export function UsersPage() {
   const [list, setList] = useState(users);
   const [q, setQ] = useState('');
   const { showNotice, Notice } = useNotice();
+  const [wardOptions, setWardOptions] = useState([]);
+  const [deptOptions, setDeptOptions] = useState([]);
   const [form, setForm] = useState({
     name: '',
     email: '',
-    role: 'Department',
-    scope: 'Municipality',
+    password: '',
+    role: 'Ward Chair',
+    wardId: '',
+    departmentId: '',
   });
 
-  // Load real accounts; keep mock data if the backend is unreachable.
+  // Load real accounts plus ward/department options for the create form;
+  // keep mock data if the backend is unreachable.
   useEffect(() => {
     const token = getToken();
     if (!token) return;
@@ -885,6 +890,14 @@ export function UsersPage() {
       .then((data) => {
         if (Array.isArray(data) && data.length) setList(data.map(mapUser));
       })
+      .catch(() => {});
+    api
+      .getWards()
+      .then((w) => Array.isArray(w) && setWardOptions(w))
+      .catch(() => {});
+    api
+      .getDepartments(token)
+      .then((d) => Array.isArray(d) && setDeptOptions(d))
       .catch(() => {});
   }, []);
 
@@ -1034,45 +1047,105 @@ export function UsersPage() {
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
               >
-                {[
-                  'Citizen',
-                  'Ward Chair',
-                  'Department',
-                  'General Admin',
-                  'CAO',
-                  'Contractor',
-                ].map((x) => (
+                {OFFICIAL_ROLES.map((x) => (
                   <option key={x}>{x}</option>
                 ))}
               </select>
             </Field>
-            <Field label='Access scope'>
+            <Field label='Temporary password'>
               <input
-                value={form.scope}
-                onChange={(e) => setForm({ ...form, scope: e.target.value })}
+                type='password'
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder='At least 8 characters'
                 className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
               />
             </Field>
+            {form.role === 'Ward Chair' && (
+              <Field label='Ward'>
+                <select
+                  value={form.wardId}
+                  onChange={(e) => setForm({ ...form, wardId: e.target.value })}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                >
+                  <option value=''>Select a ward</option>
+                  {wardOptions.map((w) => (
+                    <option key={w._id} value={w._id}>
+                      Ward {w.wardNumber} — {w.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            {form.role === 'Department' && (
+              <Field label='Department'>
+                <select
+                  value={form.departmentId}
+                  onChange={(e) =>
+                    setForm({ ...form, departmentId: e.target.value })
+                  }
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                >
+                  <option value=''>Select a department</option>
+                  {deptOptions.map((d) => (
+                    <option key={d._id} value={d._id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
           <div className='mt-5 flex justify-end gap-2'>
             <Btn kind='secondary' onClick={() => setModal(false)}>
               Cancel
             </Btn>
             <Btn
-              onClick={() => {
-                if (!form.name.trim() || !form.email.trim()) return;
-                setList([
-                  ...list,
-                  { ...form, status: 'Active', last: 'Never' },
-                ]);
-                setModal(false);
-                setForm({
-                  name: '',
-                  email: '',
-                  role: 'Department',
-                  scope: 'Municipality',
-                });
-                showNotice('Mock account added to this screen.');
+              onClick={async () => {
+                const token = getToken();
+                const role = roleToBackend[form.role];
+                if (!form.name.trim() || !form.email.trim()) {
+                  showNotice('Full name and email are required.');
+                  return;
+                }
+                if (form.password.length < 8) {
+                  showNotice('Password must be at least 8 characters.');
+                  return;
+                }
+                if (role === 'ward' && !form.wardId) {
+                  showNotice('Select a ward for the ward chair.');
+                  return;
+                }
+                if (role === 'department' && !form.departmentId) {
+                  showNotice('Select a department.');
+                  return;
+                }
+                const body = {
+                  fullName: form.name.trim(),
+                  email: form.email.trim(),
+                  password: form.password,
+                  role,
+                };
+                if (role === 'ward') body.wardId = form.wardId;
+                if (role === 'department')
+                  body.departmentId = form.departmentId;
+                try {
+                  await api.createOfficial(token, body);
+                  const data = await api.getUsers(token);
+                  if (Array.isArray(data)) setList(data.map(mapUser));
+                  setModal(false);
+                  setForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    role: 'Ward Chair',
+                    wardId: '',
+                    departmentId: '',
+                  });
+                  showNotice('Account created.');
+                } catch (err) {
+                  showNotice(err.message || 'Could not create account.');
+                }
               }}
             >
               Create account

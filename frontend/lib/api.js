@@ -94,10 +94,15 @@ export const api = {
 
   // Users (CAO / General Admin)
   getUsers: (token) => request('/users', { token }),
+  createOfficial: (token, body) =>
+    request('/users', { method: 'POST', body, token }),
   setUserStatus: (token, id, accountStatus) =>
     request(`/users/${id}/status`, {
       method: 'PATCH',
       body: { accountStatus },
       token,
     }),
+
+  // Departments
+  getDepartments: (token) => request('/departments', { token }),
 };
