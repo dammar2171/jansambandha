@@ -51,6 +51,23 @@ export const api = {
 
   // Projects (citizen)
   getProjects: (token) => request('/projects', { token }),
+  getProject: (token, id) => request(`/projects/${id}`, { token }),
+  getProjectFeedback: (token, id) =>
+    request(`/projects/${id}/feedback`, { token }),
+  setReaction: (token, id, reaction) =>
+    request(`/projects/${id}/reactions`, {
+      method: 'POST',
+      body: { reaction },
+      token,
+    }),
+  removeReaction: (token, id) =>
+    request(`/projects/${id}/reactions`, { method: 'DELETE', token }),
+  addProjectComment: (token, id, comment) =>
+    request(`/projects/${id}/comments`, {
+      method: 'POST',
+      body: { comment },
+      token,
+    }),
 
   // Complaints (citizen)
   getMyComplaints: (token) => request('/complaints', { token }),

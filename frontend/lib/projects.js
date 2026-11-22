@@ -12,7 +12,9 @@ const STATUS_LABEL = {
 };
 
 const rs = (n) =>
-  typeof n === 'number' ? `Rs ${new Intl.NumberFormat('en-IN').format(n)}` : '—';
+  typeof n === 'number'
+    ? `Rs ${new Intl.NumberFormat('en-IN').format(n)}`
+    : '—';
 
 export function mapProject(p) {
   const verified = p.verifiedProgress ?? 0;
@@ -56,3 +58,56 @@ export function mapProject(p) {
     journey: [],
   };
 }
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+export const initialsOf = (name) =>
+  (name || 'Citizen')
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'C';
+
+export function fmtWhen(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  if (d.toDateString() === new Date().toDateString()) return 'Today';
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+// Map a backend feedback comment into the shape the UI Comment expects.
+export function mapComment(f, myUserId) {
+  const u = f.userId;
+  const name = (u && typeof u === 'object' ? u.fullName : null) || 'Citizen';
+  const uid = u && typeof u === 'object' ? u._id : u;
+  return {
+    id: f._id,
+    who: name,
+    initials: initialsOf(name),
+    role: null,
+    when: fmtWhen(f.createdAt),
+    text: f.comment,
+    likes: 0,
+    mine: myUserId != null && String(uid) === String(myUserId),
+  };
+}
+
+export const reactionToUi = (r) =>
+  r === 'LIKE' ? 'up' : r === 'DISLIKE' ? 'down' : null;
+export const reactionToApi = (u) => (u === 'up' ? 'LIKE' : 'DISLIKE');

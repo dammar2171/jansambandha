@@ -1,5 +1,5 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Icon from '@/app/components/ui/Icon';
@@ -11,15 +11,21 @@ import ProgressBar from '@/app/components/ui/ProgressBar';
 import Timeline from '@/app/components/ui/Timeline';
 import ReactionButton from '@/app/components/citizen/ReactionButton';
 import {
-  addComment,
   clearRating,
   reportComment,
   submitRating,
   toggleCommentLike,
   toggleFollow,
-  toggleReaction,
   useStore,
 } from '@/lib/store';
+import { useSession } from '@/lib/session';
+import { api } from '@/lib/api';
+import {
+  mapComment,
+  mapProject,
+  reactionToApi,
+  reactionToUi,
+} from '@/lib/projects';
 
 const LABELS = ['Very poor', 'Poor', 'Fair', 'Good', 'Very good'];
 
@@ -98,17 +104,73 @@ export default function ProjectDetail() {
 
 function ProjectDetailContent() {
   const { id } = useParams();
-  const p = useStore((s) => s.projects.find((x) => x.id === id));
-  const reaction = useStore((s) => s.reactions[id]);
+  const session = useSession();
+  const token = session?.token;
+  const myUserId = session?.user?._id;
+
+  const [p, setP] = useState(null);
+  const [fb, setFb] = useState({ up: 0, down: 0, mine: null, comments: [] });
+  const [loading, setLoading] = useState(true);
+  const [missing, setMissing] = useState(false);
+
   const following = useStore((s) => !!s.following[id]);
-  const comments = useStore((s) => s.comments[id]);
   const rating = useStore((s) => s.ratings[id]);
   const [text, setText] = useState('');
+  const [posting, setPosting] = useState(false);
   const [stars, setStars] = useState(0);
-  const [fb, setFb] = useState('');
-  const [fbError, setFbError] = useState('');
+  const [ratingText, setRatingText] = useState('');
+  const [ratingError, setRatingError] = useState('');
 
-  if (!p) {
+  useEffect(() => {
+    if (!token || !id) return;
+    let active = true;
+    (async () => {
+      try {
+        const proj = await api.getProject(token, id);
+        if (!active) return;
+        setP(mapProject(proj));
+        try {
+          const feedback = await api.getProjectFeedback(token, id);
+          if (!active) return;
+          setFb({
+            up: feedback.reactions?.likes ?? 0,
+            down: feedback.reactions?.dislikes ?? 0,
+            mine: reactionToUi(feedback.myReaction),
+            comments: (feedback.comments || []).map((c) =>
+              mapComment(c, myUserId),
+            ),
+          });
+        } catch {
+          /* leave default feedback if it cannot be loaded */
+        }
+      } catch {
+        if (active) setMissing(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [id, token, myUserId]);
+
+  if (loading) {
+    return (
+      <>
+        <TopBar
+          crumbs={[
+            { label: 'Projects', href: '/citizen/projects' },
+            { label: 'Loading' },
+          ]}
+        />
+        <main className='p-8 text-sm text-ink-3' aria-busy='true'>
+          Loading project…
+        </main>
+      </>
+    );
+  }
+
+  if (missing || !p) {
     return (
       <>
         <TopBar
@@ -135,19 +197,66 @@ function ProjectDetailContent() {
     );
   }
 
-  const list = comments || [];
-  const total = p.commentCount + list.filter((c) => c.mine).length;
+  const list = fb.comments;
+  const total = list.length;
   const started = p.status === 'Ongoing';
 
-  function post() {
-    if (!text.trim()) return;
-    addComment(id, text.trim());
-    setText('');
+  async function react(kind) {
+    if (!token) return;
+    const prev = fb;
+    let nextFb;
+    if (fb.mine === kind) {
+      nextFb = { ...fb, [kind]: Math.max(0, fb[kind] - 1), mine: null };
+    } else {
+      nextFb = {
+        ...fb,
+        up:
+          kind === 'up'
+            ? fb.up + 1
+            : fb.mine === 'up'
+              ? Math.max(0, fb.up - 1)
+              : fb.up,
+        down:
+          kind === 'down'
+            ? fb.down + 1
+            : fb.mine === 'down'
+              ? Math.max(0, fb.down - 1)
+              : fb.down,
+        mine: kind,
+      };
+    }
+    setFb(nextFb);
+    try {
+      if (prev.mine === kind) await api.removeReaction(token, id);
+      else await api.setReaction(token, id, reactionToApi(kind));
+    } catch {
+      setFb(prev); // revert on failure
+    }
   }
+
+  async function post() {
+    const body = text.trim();
+    if (!body || !token) return;
+    setPosting(true);
+    try {
+      await api.addProjectComment(token, id, body);
+      const feedback = await api.getProjectFeedback(token, id);
+      setFb((f) => ({
+        ...f,
+        comments: (feedback.comments || []).map((c) => mapComment(c, myUserId)),
+      }));
+      setText('');
+    } catch {
+      /* comment not saved; leave the text so the user can retry */
+    } finally {
+      setPosting(false);
+    }
+  }
+
   function sendFeedback() {
-    if (!stars) return setFbError('Choose a star rating first.');
-    setFbError('');
-    submitRating(id, stars, fb.trim());
+    if (!stars) return setRatingError('Choose a star rating first.');
+    setRatingError('');
+    submitRating(id, stars, ratingText.trim());
   }
 
   return (
@@ -177,16 +286,16 @@ function ProjectDetailContent() {
             <ReactionButton
               kind='up'
               label='Like'
-              count={p.up + (reaction === 'up' ? 1 : 0)}
-              active={reaction === 'up'}
-              onClick={() => toggleReaction(id, 'up')}
+              count={fb.up}
+              active={fb.mine === 'up'}
+              onClick={() => react('up')}
             />
             <ReactionButton
               kind='down'
               label='Dislike'
-              count={p.down + (reaction === 'down' ? 1 : 0)}
-              active={reaction === 'down'}
-              onClick={() => toggleReaction(id, 'down')}
+              count={fb.down}
+              active={fb.mine === 'down'}
+              onClick={() => react('down')}
             />
             <Button
               variant={following ? 'primary' : 'outline'}
@@ -264,7 +373,11 @@ function ProjectDetailContent() {
                   placeholder='Share how this project affects you'
                   className='min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-3'
                 />
-                <Button size='xs' onClick={post} disabled={!text.trim()}>
+                <Button
+                  size='xs'
+                  onClick={post}
+                  disabled={!text.trim() || posting}
+                >
                   <Icon name='send' size={16} />
                   Post
                 </Button>
@@ -325,7 +438,7 @@ function ProjectDetailContent() {
                     type='button'
                     onClick={() => {
                       setStars(rating.stars);
-                      setFb(rating.text);
+                      setRatingText(rating.text);
                       clearRating(id);
                     }}
                     className='ml-2 font-semibold underline'
@@ -363,14 +476,14 @@ function ProjectDetailContent() {
                   </label>
                   <textarea
                     id='fb'
-                    value={fb}
-                    onChange={(e) => setFb(e.target.value)}
+                    value={ratingText}
+                    onChange={(e) => setRatingText(e.target.value)}
                     placeholder='Tell us about quality and service'
                     className='h-16 w-full resize-none rounded-lg border border-line-strong p-3 text-[13px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20'
                   />
-                  {fbError && (
+                  {ratingError && (
                     <p className='text-xs text-danger' role='alert'>
-                      {fbError}
+                      {ratingError}
                     </p>
                   )}
                   <Button size='dash' className='w-full' onClick={sendFeedback}>

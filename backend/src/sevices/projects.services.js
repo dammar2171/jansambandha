@@ -99,11 +99,15 @@ const getProjectById = async (user, id) => {
   const project = await Project.findOne({
     _id: id,
     ...buildVisibilityFilter(user),
-  });
+  })
+    .populate('wardId', 'wardNumber name')
+    .populate('departmentId', 'name')
+    .lean();
   if (!project) {
     throw new AppError('Project not found', 404);
   }
-  return project;
+  const [enriched] = await enrichProjects([project]);
+  return enriched;
 };
 
 const createProject = async (user, input) => {
@@ -272,7 +276,7 @@ const getProjectFeedback = async (user, projectId) => {
     throw new AppError('Project not found', 404);
   }
 
-  const [likes, dislikes, comments] = await Promise.all([
+  const [likes, dislikes, comments, mine] = await Promise.all([
     ProjectFeedback.countDocuments({
       projectId,
       reaction: FEEDBACK_REACTION.LIKE,
@@ -287,10 +291,16 @@ const getProjectFeedback = async (user, projectId) => {
       comment: { $ne: null },
     })
       .select('userId comment createdAt')
+      .populate('userId', 'fullName')
       .sort({ createdAt: -1 }),
+    ProjectFeedback.findOne({ projectId, userId: user._id }).select('reaction'),
   ]);
 
-  return { reactions: { likes, dislikes }, comments };
+  return {
+    reactions: { likes, dislikes },
+    myReaction: mine?.reaction ?? null,
+    comments,
+  };
 };
 
 const deleteComment = async (user, projectId, commentId) => {
