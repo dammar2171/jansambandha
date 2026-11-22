@@ -68,6 +68,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
   await databaseConnection();
+
   app.listen(config.port, () => {
     console.log(
       `Server running on http://${config.host || 'localhost'}:${config.port}`,
