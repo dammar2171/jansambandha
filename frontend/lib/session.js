@@ -1,20 +1,20 @@
-"use client";
-import { useMemo, useSyncExternalStore } from "react";
+'use client';
+import { useMemo, useSyncExternalStore } from 'react';
 
-const KEY = "jansambandha.session";
+const KEY = 'jansambandha.session';
 const listeners = new Set();
 const emit = () => listeners.forEach((l) => l());
 
 function subscribe(cb) {
   listeners.add(cb);
-  window.addEventListener("storage", cb);
+  window.addEventListener('storage', cb);
   return () => {
     listeners.delete(cb);
-    window.removeEventListener("storage", cb);
+    window.removeEventListener('storage', cb);
   };
 }
 const snapshot = () =>
-  window.localStorage.getItem(KEY) ?? window.sessionStorage.getItem(KEY) ?? "";
+  window.localStorage.getItem(KEY) ?? window.sessionStorage.getItem(KEY) ?? '';
 const serverSnapshot = () => null;
 
 // undefined = still loading, null = signed out, object = signed in
@@ -43,3 +43,20 @@ export function signOut() {
   sessionStorage.removeItem(KEY);
   emit();
 }
+
+// Non-hook readers for use inside event handlers / API calls
+export function getSession() {
+  if (typeof window === 'undefined') return null;
+  const raw =
+    window.localStorage.getItem(KEY) ??
+    window.sessionStorage.getItem(KEY) ??
+    '';
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export const getToken = () => getSession()?.token ?? null;

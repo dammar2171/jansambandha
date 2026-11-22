@@ -39,10 +39,14 @@ const registerCitizen = async (input) => {
       accountStatus: ACCOUNT_STATUS.ACTIVE,
     });
 
-    // 5. Return safe object (no password hash)
+    // 5. Return a safe user (no hash) plus a token so registration logs the citizen in
     const safeUser = user.toObject();
     delete safeUser.passwordHash;
-    return safeUser;
+    const token = generateAccessToken({
+      id: user._id.toString(),
+      role: user.role,
+    });
+    return { user: safeUser, token };
   } catch (err) {
     // Race condition: unique index on email
     if (err.code === 11000) {
