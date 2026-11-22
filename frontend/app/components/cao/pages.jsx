@@ -17,6 +17,7 @@ import { officialSchema } from '@/lib/schemas';
 import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
 import { OFFICIAL_ROLES, mapUser, roleToBackend } from '@/lib/cao/users';
 import { mapCaoProject } from '@/lib/cao/projects';
+import { mapAuditLog } from '@/lib/cao/audit';
 import {
   PageHead,
   Panel,
@@ -1523,7 +1524,21 @@ export function ReportsPage() {
 
 export function AuditPage() {
   const [q, setQ] = useState('');
-  const rows = audit.filter((r) =>
+  const [list, setList] = useState(audit);
+
+  // Load the real municipal audit trail; keep the sample if unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getAuditLogs(token)
+      .then((data) => {
+        if (Array.isArray(data) && data.length) setList(data.map(mapAuditLog));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = list.filter((r) =>
     r.join(' ').toLowerCase().includes(q.toLowerCase()),
   );
   return (

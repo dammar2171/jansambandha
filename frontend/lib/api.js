@@ -142,4 +142,7 @@ export const api = {
 
   // Departments
   getDepartments: (token) => request('/departments', { token }),
+
+  // Audit trail (CAO / General Admin)
+  getAuditLogs: (token) => request('/audit-logs', { token }),
 };

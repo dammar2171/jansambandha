@@ -1,5 +1,6 @@
 import ProjectProposal from '../models/ProjectProposal.js';
 import ProjectApproval from '../models/ProjectApproval.js';
+import auditLogServices from './auditLog.services.js';
 import { AppError } from '../utils/AppError.js';
 import {
   APPROVAL_ACTION,
@@ -171,7 +172,7 @@ const addReview = async (user, id, { note }) => {
       : APPROVAL_ACTION.ADMIN_REVIEW;
 
   // 4. Record the note on the proposal's timeline
-  return ProjectApproval.create({
+  const approval = await ProjectApproval.create({
     proposalId: proposal._id,
     action,
     decision: APPROVAL_DECISION.NOTED,
@@ -179,6 +180,16 @@ const addReview = async (user, id, { note }) => {
     remarks: note,
     decisionDate: new Date(),
   });
+
+  await auditLogServices.recordAudit({
+    actorUserId: user._id,
+    action: 'ADD_REVIEW',
+    entityType: 'ProjectProposal',
+    entityId: proposal._id,
+    after: { note },
+  });
+
+  return approval;
 };
 
 // Maps an administrative decision to its approval action and resulting status
@@ -229,8 +240,18 @@ const recordAdministrativeDecision = async (user, id, { decision, reason }) => {
     decisionDate: new Date(),
   });
 
+  const previousStatus = proposal.status;
   proposal.status = outcome.status;
   await proposal.save();
+
+  await auditLogServices.recordAudit({
+    actorUserId: user._id,
+    action: 'ADMIN_DECISION',
+    entityType: 'ProjectProposal',
+    entityId: proposal._id,
+    before: { status: previousStatus },
+    after: { status: outcome.status, decision },
+  });
 
   return approval;
 };
