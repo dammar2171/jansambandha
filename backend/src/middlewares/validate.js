@@ -1,22 +1,28 @@
-import z, { ZodError } from "zod";
+import { z } from "zod";
+import ApiResponse from "../utils/apiResponse.js";
 
 const validate = (schema, source = "body") => (req, res, next) => {
-  try {
-    const parsed = schema.parse(req[source]);
-
-    if (source === "query") {
-      Object.assign(req.query, parsed);
-    } else {
-      req[source] = parsed;
-    }
-    next();
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const formattedError = z.flattenError(error);
-      return res.status(400).json({ success: false, message: formattedError });
-    }
-    return next(error);
+  if (!["body", "query", "params"].includes(source)) {
+    return next(new Error(`Invalid validation source: ${source}`));
   }
+
+  const result = schema.safeParse(req[source]);
+
+  if (!result.success) {
+    const formattedError = z.flattenError(result.error);
+    return res
+      .status(400)
+      .json(new ApiResponse(400, "Validation failed", formattedError));
+  }
+
+  if (source === "query") {
+    for (const key of Object.keys(req.query)) {
+      delete req.query[key];
+    }
+  }
+
+  req[source] = result.data;
+  next();
 };
 
 export default validate;

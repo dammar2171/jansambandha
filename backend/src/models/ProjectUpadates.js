@@ -1,20 +1,13 @@
-
-import mongoose from "mongoose";
-
-// Progress report statuses
-export const UPDATE_STATUS = Object.freeze({
-  SUBMITTED: "SUBMITTED",
-  NEEDS_CORRECTION: "NEEDS_CORRECTION",
-  VERIFIED: "VERIFIED",
-  REJECTED: "REJECTED",
-});
+import mongoose from 'mongoose';
+import { UPDATE_STATUS } from '../constants/index.js';
+export { UPDATE_STATUS };
 
 const projectUpdateSchema = new mongoose.Schema(
   {
     // Related project
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
+      ref: 'Project',
       required: true,
       index: true,
     },
@@ -22,7 +15,7 @@ const projectUpdateSchema = new mongoose.Schema(
     // Contractor submitting the report
     contractorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       index: true,
     },
@@ -66,23 +59,23 @@ const projectUpdateSchema = new mongoose.Schema(
       default: UPDATE_STATUS.SUBMITTED,
       index: true,
     },
+
+    // Department note when a correction is requested
+    reviewNote: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Validate reporting period
-projectUpdateSchema.pre("validate", function () {
-  if (
-    this.periodFrom &&
-    this.periodTo &&
-    this.periodTo < this.periodFrom
-  ) {
-    this.invalidate(
-      "periodTo",
-      "Period end date cannot be before start date."
-    );
+projectUpdateSchema.pre('validate', function () {
+  if (this.periodFrom && this.periodTo && this.periodTo < this.periodFrom) {
+    this.invalidate('periodTo', 'Period end date cannot be before start date.');
   }
 });
 
@@ -92,9 +85,6 @@ projectUpdateSchema.index({
   createdAt: -1,
 });
 
-const ProjectUpdate = mongoose.model(
-  "ProjectUpdate",
-  projectUpdateSchema
-);
+const ProjectUpdate = mongoose.model('ProjectUpdate', projectUpdateSchema);
 
 export default ProjectUpdate;

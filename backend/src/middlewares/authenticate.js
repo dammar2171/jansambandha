@@ -5,7 +5,7 @@ import {
   DEPARTMENT_ROLE,
   GENERAL_ADMIN_ROLE,
   CAO_ROLE,
-} from "../helper/constants.js";
+} from "../constants/index.js";
 import User from "../models/User.js";
 import ApiResponse from "../utils/apiResponse.js";
 import { verifyAccessToken } from "../utils/jwt.js";

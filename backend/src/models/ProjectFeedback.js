@@ -1,18 +1,10 @@
 
 import mongoose from "mongoose";
-
-// Available reactions
-export const FEEDBACK_REACTION = Object.freeze({
-  LIKE: "LIKE",
-  DISLIKE: "DISLIKE",
-});
-
-// Comment moderation statuses
-export const MODERATION_STATUS = Object.freeze({
-  VISIBLE: "VISIBLE",
-  HIDDEN: "HIDDEN",
-  FLAGGED: "FLAGGED",
-});
+import {
+  FEEDBACK_REACTION,
+  MODERATION_STATUS,
+} from "../constants/index.js";
+export { FEEDBACK_REACTION, MODERATION_STATUS };
 
 const projectFeedbackSchema = new mongoose.Schema(
   {
