@@ -12,6 +12,7 @@ import {
 import { getToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
+import { mapUser } from '@/lib/cao/users';
 import {
   PageHead,
   Panel,
@@ -837,6 +838,19 @@ export function UsersPage() {
     role: 'Department',
     scope: 'Municipality',
   });
+
+  // Load real accounts; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getUsers(token)
+      .then((data) => {
+        if (Array.isArray(data) && data.length) setList(data.map(mapUser));
+      })
+      .catch(() => {});
+  }, []);
+
   const filtered = list.filter((u) =>
     `${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q.toLowerCase()),
   );
@@ -870,7 +884,7 @@ export function UsersPage() {
             'Action',
           ]}
         >
-          {filtered.map((u, i) => (
+          {filtered.map((u) => (
             <tr key={u.email}>
               <td className='py-3'>
                 <b>{u.name}</b>
@@ -886,27 +900,32 @@ export function UsersPage() {
               </td>
               <td>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const token = getToken();
+                    const next = u.status === 'Active' ? 'SUSPENDED' : 'ACTIVE';
                     const reason = window.prompt(
                       u.status === 'Active'
                         ? 'Reason for suspension'
                         : 'Reason for reactivation',
                     );
                     if (!reason?.trim()) return;
-                    setList((old) =>
-                      old.map((x, j) =>
-                        j === i
-                          ? {
-                              ...x,
-                              status:
-                                x.status === 'Active' ? 'Suspended' : 'Active',
-                            }
-                          : x,
-                      ),
-                    );
-                    showNotice(
-                      'User status updated. A status-history entry should be saved by the API.',
-                    );
+                    try {
+                      await api.setUserStatus(token, u.id, next);
+                      setList((old) =>
+                        old.map((x) =>
+                          x.email === u.email
+                            ? {
+                                ...x,
+                                status:
+                                  next === 'SUSPENDED' ? 'Suspended' : 'Active',
+                              }
+                            : x,
+                        ),
+                      );
+                      showNotice('User status updated.');
+                    } catch (err) {
+                      showNotice(err.message || 'Could not update status.');
+                    }
                   }}
                   className='text-xs font-semibold text-blue-700'
                 >

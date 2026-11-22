@@ -53,7 +53,10 @@ const listUsers = async (currentUser, query) => {
   }
 
   // 4. passwordHash is select:false, so it is never returned
-  return User.find(filter).sort({ createdAt: -1 });
+  return User.find(filter)
+    .populate('wardId', 'wardNumber name')
+    .populate('departmentId', 'name')
+    .sort({ createdAt: -1 });
 };
 
 const createOfficialUser = async (currentUser, input) => {

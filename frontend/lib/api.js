@@ -91,4 +91,13 @@ export const api = {
       body: { decision, reason },
       token,
     }),
+
+  // Users (CAO / General Admin)
+  getUsers: (token) => request('/users', { token }),
+  setUserStatus: (token, id, accountStatus) =>
+    request(`/users/${id}/status`, {
+      method: 'PATCH',
+      body: { accountStatus },
+      token,
+    }),
 };
