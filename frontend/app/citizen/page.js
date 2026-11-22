@@ -18,8 +18,6 @@ export default function CitizenHome() {
   const session = useSession();
   const complaints = useStore((s) => s.complaints);
   const projects = useStore((s) => s.projects);
-  const reactions = useStore((s) => s.reactions);
-  const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
 
   // Hydrate this citizen's real complaints so the dashboard counts are live.
   // Projects are already hydrated by the ProjectList rendered below.
@@ -38,7 +36,10 @@ export default function CitizenHome() {
   const open = complaints.filter(
     (c) => !['Resolved', 'Closed'].includes(c.status),
   ).length;
-  const supported = Object.values(reactions).filter((r) => r === 'up').length;
+  const resolved = complaints.filter((c) =>
+    ['Resolved', 'Closed'].includes(c.status),
+  ).length;
+  const ongoing = projects.filter((p) => p.status === 'Ongoing').length;
   const latest = complaints[0];
 
   const kpis = [
@@ -49,21 +50,21 @@ export default function CitizenHome() {
       tone: 'bg-warn-tint text-warn',
     },
     {
+      label: 'Resolved complaints',
+      value: resolved,
+      icon: 'check',
+      tone: 'bg-ok-tint text-ok',
+    },
+    {
       label: `Projects in Ward ${session?.ward ?? 4}`,
       value: projects.length,
       icon: 'folder',
       tone: 'bg-info-tint text-info',
     },
     {
-      label: 'Projects you support',
-      value: supported,
+      label: 'Ongoing projects',
+      value: ongoing,
       icon: 'up',
-      tone: 'bg-ok-tint text-ok',
-    },
-    {
-      label: 'Unread updates',
-      value: unread,
-      icon: 'bell',
       tone: 'bg-brand-tint text-brand',
     },
   ];
