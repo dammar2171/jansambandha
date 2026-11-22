@@ -1,0 +1,42 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+
+import authRoutes from "./routes/auth.routes.js";
+import projectProposalRoutes from "./routes/projectProposalRoutes.js";
+
+import logger from "./middlewares/loggerMiddleware.js";
+
+import config from "./config/config.js";
+import databaseConnection from "./config/db.js";
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+app.use(logger);
+
+// Routes
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/project-proposals", projectProposalRoutes);
+
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+const startServer = async () => {
+  await databaseConnection();
+
+  app.listen(config.port, () => {
+    console.log(
+      `Server running on http://${config.host}:${config.port}`
+    );
+  });
+};
+
+if (process.argv[1]?.endsWith("server.js")) {
+  startServer();
+}
+
+export default app;
