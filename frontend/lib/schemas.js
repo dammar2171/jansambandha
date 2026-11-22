@@ -20,6 +20,21 @@ export const registerSchema = z
     message: 'Passwords do not match.',
   });
 
+export const complaintSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(5, 'Give the problem a short title, at least 5 characters.'),
+  description: z
+    .string()
+    .trim()
+    .min(
+      20,
+      'Describe the problem in at least 20 characters so the ward can act on it.',
+    ),
+  location: z.string().trim().optional(),
+});
+
 export const proposalSchema = z.object({
   title: z.string().trim().min(5, 'Title must be at least 5 characters.'),
   category: z.string().min(1, 'Choose a category.'),
