@@ -2,6 +2,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { ACCOUNT_STATUS, ROLES } from '../constants/index.js';
+import { isValidFullName } from '../helper/validate.js';
 
 const userSchema = new mongoose.Schema(
   {
@@ -10,6 +11,10 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Full name is required'],
       trim: true,
       maxlength: 100,
+      validate: {
+        validator: isValidFullName,
+        message: 'Invalid full name',
+      },
     },
     email: {
       type: String,
