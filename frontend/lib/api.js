@@ -83,4 +83,12 @@ export const api = {
     request(`/project-proposals/${id}`, { method: 'PATCH', body, token }),
   submitProposal: (token, id) =>
     request(`/project-proposals/${id}/submit`, { method: 'POST', token }),
+  getProposalHistory: (token, id) =>
+    request(`/project-proposals/${id}/history`, { token }),
+  decideProposal: (token, id, decision, reason) =>
+    request(`/project-proposals/${id}/administrative-decision`, {
+      method: 'POST',
+      body: { decision, reason },
+      token,
+    }),
 };

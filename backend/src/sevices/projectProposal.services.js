@@ -43,7 +43,9 @@ const listProjectProposals = async (user, query) => {
   }
 
   // 4. Return matching proposals, newest first
-  return ProjectProposal.find(filter).sort({ createdAt: -1 });
+  return ProjectProposal.find(filter)
+    .populate('wardId', 'wardNumber name')
+    .sort({ createdAt: -1 });
 };
 
 const getProjectProposalById = async (user, id) => {
@@ -53,15 +55,20 @@ const getProjectProposalById = async (user, id) => {
   }
 
   // 2. Find the proposal
-  const proposal = await ProjectProposal.findById(id);
+  const proposal = await ProjectProposal.findById(id).populate(
+    'wardId',
+    'wardNumber name',
+  );
   if (!proposal) {
     throw new AppError('Project proposal not found', 404);
   }
 
   // 3. Ward chairpersons can only view proposals in their own ward
+  //    (wardId may be a populated document, so compare by its id)
+  const proposalWardId = String(proposal.wardId?._id ?? proposal.wardId);
   if (
     user.role === ROLES.WARD_CHAIR &&
-    String(proposal.wardId) !== String(user.wardId)
+    proposalWardId !== String(user.wardId)
   ) {
     throw new AppError(
       'You are not allowed to view this project proposal',

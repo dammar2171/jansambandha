@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   proposals,
   projects,
@@ -9,6 +9,9 @@ import {
   audit,
   money,
 } from '../../../lib/cao/data';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
 import {
   PageHead,
   Panel,
@@ -214,7 +217,22 @@ export function DashboardPage() {
 
 export function ApprovalsPage() {
   const [filter, setFilter] = useState('All');
-  const rows = proposals.filter((p) => filter === 'All' || p.status === filter);
+  const [items, setItems] = useState(proposals);
+
+  // Load real proposals; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setItems(list.map(mapCaoProposal));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = items.filter((p) => filter === 'All' || p.status === filter);
   return (
     <>
       <PageHead
@@ -303,10 +321,78 @@ export function ApprovalsPage() {
 }
 
 export function ApprovalDetail({ id }) {
-  const p = proposals.find((x) => x.id === id) || proposals[0];
+  const [p, setP] = useState(null);
+  const [history, setHistory] = useState([]);
   const [modal, setModal] = useState('');
   const [reason, setReason] = useState('');
   const [done, setDone] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const loadHistory = (token) =>
+    api
+      .getProposalHistory(token, id)
+      .then((list) =>
+        setHistory(Array.isArray(list) ? list.map(mapApproval) : []),
+      )
+      .catch(() => {});
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProposal(token, id)
+      .then((data) => setP(mapCaoProposal(data)))
+      .catch(() => {});
+    api
+      .getProposalHistory(token, id)
+      .then((list) =>
+        setHistory(Array.isArray(list) ? list.map(mapApproval) : []),
+      )
+      .catch(() => {});
+  }, [id]);
+
+  async function decide(kind) {
+    const token = getToken();
+    const decision =
+      kind === 'approve'
+        ? 'APPROVED'
+        : kind === 'return'
+          ? 'RETURNED'
+          : 'REJECTED';
+    // The backend requires a reason for every decision; default the approval.
+    const note =
+      reason.trim() || (kind === 'approve' ? 'Administratively approved' : '');
+    if (!note || saving) return;
+    setSaving(true);
+    try {
+      await api.decideProposal(token, id, decision, note);
+      setDone(
+        kind === 'approve'
+          ? 'Administratively approved'
+          : kind === 'return'
+            ? 'Returned'
+            : 'Rejected',
+      );
+      setModal('');
+      setReason('');
+      loadHistory(token);
+    } catch {
+      setModal('');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!p) {
+    return (
+      <PageHead
+        eyebrow='Project approvals / Proposal detail'
+        title='Loading proposal'
+        description={id}
+      />
+    );
+  }
+
   return (
     <>
       <PageHead
@@ -448,16 +534,27 @@ export function ApprovalDetail({ id }) {
                   {p.submitted} · Ward Chairperson
                 </div>
               </div>
-              <div className='border-l-2 border-emerald-300 pl-3'>
-                <b>Technical review completed</b>
-                <div className='mt-1 text-slate-400'>
-                  {p.reviewer} · {p.review}
+              {history.length ? (
+                history.map((h) => (
+                  <div
+                    key={h.id}
+                    className='border-l-2 border-emerald-300 pl-3'
+                  >
+                    <b>{h.label}</b>
+                    <div className='mt-1 text-slate-400'>
+                      {h.when}
+                      {h.remarks ? ` · ${h.remarks}` : ''}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className='border-l-2 border-slate-200 pl-3'>
+                  <b>Administrative action pending</b>
+                  <div className='mt-1 text-slate-400'>
+                    Awaiting CAO decision
+                  </div>
                 </div>
-              </div>
-              <div className='border-l-2 border-slate-200 pl-3'>
-                <b>Administrative action pending</b>
-                <div className='mt-1 text-slate-400'>Awaiting CAO decision</div>
-              </div>
+              )}
             </div>
           </Panel>
         </div>
@@ -497,24 +594,14 @@ export function ApprovalDetail({ id }) {
             <Btn kind='secondary' onClick={() => setModal('')}>
               Cancel
             </Btn>
-            <Btn
-              onClick={() => {
-                if (modal !== 'approve' && !reason.trim()) return;
-                setDone(
-                  modal === 'approve'
-                    ? 'Administratively approved'
-                    : modal === 'return'
-                      ? 'Returned'
-                      : 'Rejected',
-                );
-                setModal('');
-              }}
-            >
-              {modal === 'approve'
-                ? 'Confirm approval'
-                : modal === 'return'
-                  ? 'Return proposal'
-                  : 'Confirm rejection'}
+            <Btn onClick={() => decide(modal)}>
+              {saving
+                ? 'Saving\u2026'
+                : modal === 'approve'
+                  ? 'Confirm approval'
+                  : modal === 'return'
+                    ? 'Return proposal'
+                    : 'Confirm rejection'}
             </Btn>
           </div>
         </Modal>
@@ -899,7 +986,7 @@ export function UsersPage() {
                   'CAO',
                   'Contractor',
                 ].map((x) => (
-                  <option>{x}</option>
+                  <option key={x}>{x}</option>
                 ))}
               </select>
             </Field>
