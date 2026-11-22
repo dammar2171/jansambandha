@@ -128,6 +128,42 @@ const deleteComment = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, 'Comment deleted'));
 });
 
+const submitProgressUpdate = asyncHandler(async (req, res) => {
+  const data = await projectServices.submitProgressUpdate(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, 'Progress update submitted successfully', data));
+});
+
+const listProgressUpdates = asyncHandler(async (req, res) => {
+  const data = await projectServices.listProgressUpdates(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Progress updates fetched successfully', data));
+});
+
+const getProgressComparison = asyncHandler(async (req, res) => {
+  const data = await projectServices.getProgressComparison(
+    req.user,
+    req.params.id,
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, 'Progress comparison fetched successfully', data),
+    );
+});
+
 export default {
   listProjects,
   listPublicProjects,
@@ -140,4 +176,7 @@ export default {
   addComment,
   getProjectFeedback,
   deleteComment,
+  submitProgressUpdate,
+  listProgressUpdates,
+  getProgressComparison,
 };

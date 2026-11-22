@@ -11,6 +11,7 @@ import {
   createReactionSchema,
   createCommentSchema,
 } from '../libs/schemas/projectFeedback.schema.js';
+import { createProjectUpdateSchema } from '../libs/schemas/projectUpdate.schema.js';
 
 const router = express.Router();
 
@@ -94,6 +95,31 @@ router.get(
   authMiddleware.protect,
   validateObjectId('id'),
   projectControllers.getProjectFeedback,
+);
+
+// Assigned contractor: submit a progress update
+router.post(
+  '/:id/progress-updates',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  validate(createProjectUpdateSchema),
+  projectControllers.submitProgressUpdate,
+);
+
+// Assigned contractor / assigned department / CAO / General Admin: view updates
+router.get(
+  '/:id/progress-updates',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectControllers.listProgressUpdates,
+);
+
+// Assigned department / CAO / General Admin: reported vs verified progress
+router.get(
+  '/:id/progress-comparison',
+  authMiddleware.protect,
+  validateObjectId('id'),
+  projectControllers.getProgressComparison,
 );
 
 export default router;

@@ -1,6 +1,8 @@
 import Project from '../models/Project.js';
 import ProjectProposal from '../models/ProjectProposal.js';
 import ProjectFeedback from '../models/ProjectFeedback.js';
+import ProjectUpdate from '../models/ProjectUpadates.js';
+import ProjectInspection from '../models/ProjectInspect.js';
 import { AppError } from '../utils/AppError.js';
 import {
   ROLES,
@@ -265,6 +267,105 @@ const deleteComment = async (user, projectId, commentId) => {
   return null;
 };
 
+// Who may view progress updates: assigned contractor, assigned department, CAO / General Admin
+const canViewProgress = (user, project) => {
+  switch (user.role) {
+    case ROLES.CAO:
+    case ROLES.GENERAL_ADMIN:
+      return true;
+    case ROLES.CONTRACTOR:
+      return String(project.contractorId) === String(user._id);
+    case ROLES.DEPARTMENT:
+      return String(project.departmentId) === String(user.departmentId);
+    default:
+      return false;
+  }
+};
+
+// Who may compare progress: assigned department, CAO / General Admin (not the contractor)
+const canCompareProgress = (user, project) => {
+  if ([ROLES.CAO, ROLES.GENERAL_ADMIN].includes(user.role)) {
+    return true;
+  }
+  if (user.role === ROLES.DEPARTMENT) {
+    return String(project.departmentId) === String(user.departmentId);
+  }
+  return false;
+};
+
+const submitProgressUpdate = async (user, projectId, input) => {
+  if (user.role !== ROLES.CONTRACTOR) {
+    throw new AppError(
+      'Only the assigned contractor can submit progress updates',
+      403,
+    );
+  }
+
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+  if (String(project.contractorId) !== String(user._id)) {
+    throw new AppError('You are not assigned to this project', 403);
+  }
+
+  return ProjectUpdate.create({
+    projectId: project._id,
+    contractorId: user._id,
+    reportedProgress: input.reportedProgress,
+    workDescription: input.workDescription,
+    evidenceUrls: input.evidenceUrls,
+    periodFrom: input.periodFrom,
+    periodTo: input.periodTo,
+  });
+};
+
+const listProgressUpdates = async (user, projectId) => {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+  if (!canViewProgress(user, project)) {
+    throw new AppError('You are not allowed to view progress updates', 403);
+  }
+  return ProjectUpdate.find({ projectId }).sort({ createdAt: -1 });
+};
+
+const getProgressComparison = async (user, projectId) => {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    throw new AppError('Project not found', 404);
+  }
+  if (!canCompareProgress(user, project)) {
+    throw new AppError('You are not allowed to view progress comparison', 403);
+  }
+
+  const [updates, inspections] = await Promise.all([
+    ProjectUpdate.find({ projectId }).sort({ createdAt: -1 }),
+    ProjectInspection.find({ projectId }),
+  ]);
+
+  // Index inspections by the update they verified
+  const inspectionByUpdate = new Map(
+    inspections.map((i) => [String(i.progressUpdateId), i]),
+  );
+
+  return updates.map((u) => {
+    const inspection = inspectionByUpdate.get(String(u._id));
+    const verified = inspection ? inspection.verifiedProgress : null;
+    return {
+      updateId: u._id,
+      periodFrom: u.periodFrom,
+      periodTo: u.periodTo,
+      reportedProgress: u.reportedProgress,
+      verifiedProgress: verified,
+      difference: verified === null ? null : u.reportedProgress - verified,
+      qualityStatus: inspection ? inspection.qualityStatus : null,
+      inspected: Boolean(inspection),
+    };
+  });
+};
+
 export default {
   listProjects,
   listPublicProjects,
@@ -277,4 +378,7 @@ export default {
   addComment,
   getProjectFeedback,
   deleteComment,
+  submitProgressUpdate,
+  listProgressUpdates,
+  getProgressComparison,
 };
