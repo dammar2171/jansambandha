@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getToken, signOut, useSession } from '@/lib/session';
 import { api } from '@/lib/api';
-import { mapWorkspaceProject } from '@/lib/workspace';
+import { mapWorkspaceProject, mapSubmissionRow } from '@/lib/workspace';
 
 const MOCK_PROJECTS = [
   {
@@ -351,6 +351,41 @@ export default function RoleWorkspace({ role, section }) {
       active = false;
     };
   }, [modal, selected, role]);
+
+  // Contractor submissions page: load the real submitted progress updates
+  // across the contractor's assigned projects so the history survives reloads.
+  // Only persisted projects (24-char ids) are queried; mock ids are skipped.
+  useEffect(() => {
+    if (role !== 'contractor' || section !== 'submissions') return;
+    const token = getToken();
+    if (!token) return;
+    const real = projects.filter((p) => /^[a-f\d]{24}$/i.test(String(p.id)));
+    if (!real.length) return;
+    let active = true;
+    Promise.all(
+      real.map((p) =>
+        api
+          .getProgressUpdates(token, p.id)
+          .then((list) =>
+            (Array.isArray(list) ? list : []).map((u) => ({
+              at: u.createdAt,
+              row: mapSubmissionRow(u, p),
+            })),
+          )
+          .catch(() => []),
+      ),
+    ).then((chunks) => {
+      if (!active) return;
+      const rows = chunks
+        .flat()
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .map((x) => x.row);
+      if (rows.length) setSubmissions(rows);
+    });
+    return () => {
+      active = false;
+    };
+  }, [role, section, projects]);
   const cfg = configs[role],
     nav = paths[role],
     isDept = role === 'department',
@@ -864,26 +899,25 @@ export default function RoleWorkspace({ role, section }) {
         {simplePanel(
           'Progress submission history',
           'Submitted progress reports with work stage, expenditure, delay reason and supporting photos.',
-          [
-            ...submissions,
-            ...[
-              [
-                'SUB-2083-014-04',
-                'Ward 4 Drinking Water · 75% · Pipe laying',
-                'Submitted',
+          submissions.length
+            ? submissions
+            : [
+                [
+                  'SUB-2083-014-04',
+                  'Ward 4 Drinking Water · 75% · Pipe laying',
+                  'Submitted',
+                ],
+                [
+                  'SUB-2083-021-03',
+                  'Ward 7 Road · 46% · Base preparation',
+                  'Verified',
+                ],
+                [
+                  'SUB-2083-032-02',
+                  'Health Post · 22% · Structural repair',
+                  'Needs correction',
+                ],
               ],
-              [
-                'SUB-2083-021-03',
-                'Ward 7 Road · 46% · Base preparation',
-                'Verified',
-              ],
-              [
-                'SUB-2083-032-02',
-                'Health Post · 22% · Structural repair',
-                'Needs correction',
-              ],
-            ],
-          ],
           'Submit progress update',
         )}
       </>
