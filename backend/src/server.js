@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 
 // import routes here
 import authRoutes from './routes/auth.routes.js';
@@ -14,6 +15,7 @@ import progressUpdateRoutes from './routes/progressUpdate.routes.js';
 import contractorRoutes from './routes/contractor.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import auditLogRoutes from './routes/auditLog.routes.js';
 
 import logger from './middlewares/loggerMiddleware.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -37,9 +39,21 @@ app.use('/api/v1/progress-updates', progressUpdateRoutes);
 app.use('/api/v1/contractors', contractorRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/audit-logs', auditLogRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Public health check for monitoring
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    database:
+      mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+  });
 });
 
 app.use(errorHandler);
