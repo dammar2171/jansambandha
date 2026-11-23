@@ -35,7 +35,7 @@ export default function SignInPage() {
       <section className='flex flex-col justify-between bg-brand-deep p-8 text-white lg:p-16'>
         <div className='flex items-center gap-2.5'>
           <Image
-            src='/jansambandha_logo.jpeg'
+            src='/logo.jpeg'
             alt='JanSambandha logo'
             width={28}
             height={28}

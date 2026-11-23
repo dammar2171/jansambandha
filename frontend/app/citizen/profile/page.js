@@ -146,7 +146,7 @@ export default function ProfilePage() {
   return (
     <>
       <TopBar crumbs={[{ label: 'Profile' }]} />
-      <main className='flex max-w-[560px] flex-col gap-6 p-8'>
+      <main className='flex w-full flex-col gap-6 p-8'>
         <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
           Profile
         </h1>

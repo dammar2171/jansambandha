@@ -34,7 +34,7 @@ export default function CaoShell({ children }) {
       <aside className='w-full bg-[#102b49] text-white md:fixed md:inset-y-0 md:flex md:w-[248px] md:flex-col'>
         <div className='flex h-[76px] items-center gap-3 border-b border-white/10 px-6'>
           <Image
-            src='/jansambandha_logo.jpeg'
+            src='/logo.jpeg'
             alt='JanSambandha logo'
             width={40}
             height={40}

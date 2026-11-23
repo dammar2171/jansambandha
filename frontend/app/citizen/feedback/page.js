@@ -48,7 +48,7 @@ export default function FeedbackPage() {
   return (
     <>
       <TopBar crumbs={[{ label: 'My Feedback' }]} />
-      <main className='flex max-w-[860px] flex-col gap-6 p-8'>
+      <main className='flex w-full flex-col gap-6 p-8'>
         <div className='flex items-center justify-between gap-6'>
           <div>
             <h1 className='text-[28px] font-bold leading-[33px] text-ink'>

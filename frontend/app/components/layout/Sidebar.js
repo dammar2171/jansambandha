@@ -25,7 +25,7 @@ export default function Sidebar({ items, roleLabel, user, unread, onSignOut }) {
         aria-label='JanSambandha home'
       >
         <Image
-          src='/jansambandha_logo.jpeg'
+          src='/logo.jpeg'
           alt='JanSambandha logo'
           width={36}
           height={36}
