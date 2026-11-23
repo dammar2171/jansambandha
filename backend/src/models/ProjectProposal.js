@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { PROPOSAL_STATUS } from "../helper/constants.js";
+import { PROPOSAL_STATUS } from "../constants/index.js";
 
 const projectProposalSchema = new mongoose.Schema(
   {

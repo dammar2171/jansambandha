@@ -1,32 +1,24 @@
-"use client";
-import { useSyncExternalStore } from "react";
-import { PROJECTS, COMMENTS, COMPLAINTS, NOTIFICATIONS } from "./mock/citizen";
+'use client';
+import { create } from 'zustand';
+import { getToken } from './session';
+import { api } from './api';
 
-// In-memory store. Resets on full page reload. Swap these actions for API calls later.
-let state = {
-  projects: PROJECTS,
-  comments: COMMENTS,
-  complaints: COMPLAINTS,
-  notifications: NOTIFICATIONS,
-  reactions: { water: "up", road: "up" },
-  following: {},
-  ratings: {},
-  suggestions: [],
-  likedComments: {},
+// Citizen app state. Everything is hydrated from the backend by the pages;
+// the store only holds what several components share (projects, complaints,
+// notifications, the current reaction map, the complaint draft, search, toast).
+export const useStore = create(() => ({
+  projects: [],
+  comments: {},
+  complaints: [],
+  notifications: [],
+  reactions: {},
   draft: null,
-  search: "",
+  search: '',
   toast: null,
-};
+}));
 
-const subs = new Set();
-const subscribe = (fn) => (subs.add(fn), () => subs.delete(fn));
-const set = (patch) => {
-  state = { ...state, ...patch };
-  subs.forEach((fn) => fn());
-};
-
-export const useStore = (selector) =>
-  useSyncExternalStore(subscribe, () => selector(state), () => selector(state));
+const set = useStore.setState;
+const get = useStore.getState;
 
 let toastTimer;
 export function showToast(message) {
@@ -37,75 +29,71 @@ export function showToast(message) {
 
 export const setSearch = (search) => set({ search });
 
-export function toggleReaction(id, kind) {
-  set({ reactions: { ...state.reactions, [id]: state.reactions[id] === kind ? null : kind } });
-}
+// Replace the reaction map (used to hydrate the citizen's reactions from the
+// backend project list).
+export const setReactions = (reactions) => set({ reactions });
 
-export function toggleFollow(id) {
-  const on = !state.following[id];
-  set({ following: { ...state.following, [id]: on } });
-  showToast(on ? "You will get updates on this project" : "You stopped following this project");
-}
-
-export function addComment(id, text) {
-  const c = { id: `c${Date.now()}`, who: "You", initials: "RS", role: null, when: "Just now", text, likes: 0, mine: true };
-  set({ comments: { ...state.comments, [id]: [...(state.comments[id] || []), c] } });
-  showToast("Comment posted");
-}
-
-export function toggleCommentLike(cid) {
-  set({ likedComments: { ...state.likedComments, [cid]: !state.likedComments[cid] } });
-}
-
-export function reportComment() {
-  showToast("Comment reported to the moderators");
-}
-
-export function submitRating(id, stars, text) {
-  set({ ratings: { ...state.ratings, [id]: { stars, text } } });
-  showToast("Thank you for your feedback");
-}
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-export function addComplaint(data) {
-  const next = Math.max(...state.complaints.map((c) => Number(c.id.split("-")[2]))) + 1;
-  const id = `WC-2083-${String(next).padStart(4, "0")}`;
-  const d = new Date();
-  const date = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const complaint = {
-    id,
-    ...data,
-    status: "Submitted",
-    date,
-    projectId: data.category === "Water" ? "water" : null,
-    events: [{ status: "Submitted", who: "Ram Sharma", date, time }],
-  };
-  set({ complaints: [complaint, ...state.complaints], draft: null });
-  showToast(`Complaint ${id} submitted`);
-  return complaint;
+// Toggle a reaction optimistically and persist it to the backend.
+export async function reactToProject(id, kind) {
+  const prev = get().reactions[id] ?? null;
+  const next = prev === kind ? null : kind;
+  set((s) => ({ reactions: { ...s.reactions, [id]: next } }));
+  const token = getToken();
+  if (!token) return;
+  try {
+    if (next === null) await api.removeReaction(token, id);
+    else await api.setReaction(token, id, next === 'up' ? 'LIKE' : 'DISLIKE');
+  } catch {
+    set((s) => ({ reactions: { ...s.reactions, [id]: prev } }));
+  }
 }
 
 export const saveDraft = (draft) => {
   set({ draft });
-  showToast("Draft saved");
+  showToast('Draft saved');
 };
 
-export const markRead = (id) =>
-  set({ notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)) });
+// Replace the complaint list (used to hydrate from the backend)
+export const setComplaints = (complaints) => set({ complaints });
 
-export const markAllRead = () => set({ notifications: state.notifications.map((n) => ({ ...n, read: true })) });
+// Replace the project list (used to hydrate from the backend)
+export const setProjects = (projects) => set({ projects });
 
-export function clearRating(id) {
-  const next = { ...state.ratings };
-  delete next[id];
-  set({ ratings: next });
+// Prepend a single complaint (already in store shape)
+export const prependComplaint = (complaint) =>
+  set((s) => ({ complaints: [complaint, ...s.complaints], draft: null }));
+
+// Replace the notification list (hydrated from the backend)
+export const setNotifications = (notifications) => set({ notifications });
+
+// Mark one notification read (optimistic, persisted to the backend)
+export async function markRead(id) {
+  const prev = get().notifications;
+  set((s) => ({
+    notifications: s.notifications.map((n) =>
+      n.id === id ? { ...n, read: true } : n,
+    ),
+  }));
+  const token = getToken();
+  if (!token) return;
+  try {
+    await api.markNotificationRead(token, id);
+  } catch {
+    set({ notifications: prev });
+  }
 }
 
-export function addSuggestion(data) {
-  const s = { id: `SG-${String(state.suggestions.length + 1).padStart(4, "0")}`, ...data, status: "Submitted" };
-  set({ suggestions: [s, ...state.suggestions] });
-  showToast("Suggestion sent to your ward chairperson");
-  return s;
+// Mark every notification read (optimistic, persisted to the backend)
+export async function markAllRead() {
+  const prev = get().notifications;
+  set((s) => ({
+    notifications: s.notifications.map((n) => ({ ...n, read: true })),
+  }));
+  const token = getToken();
+  if (!token) return;
+  try {
+    await api.markAllNotificationsRead(token);
+  } catch {
+    set({ notifications: prev });
+  }
 }

@@ -1,29 +1,29 @@
+import { z } from 'zod';
+import {
+  ACCOUNT_STATUS,
+  MONGODB_OBJECT_ID_REGEX,
+  ROLES,
+} from '../../constants/index.js';
+import { isValidFullName } from '../../helper/validate.js';
 
-import { z } from "zod";
+export const userRoleSchema = z.enum(Object.values(ROLES));
 
-export const userRoleSchema = z.enum([
-  "CITIZEN",
-  "WARD_CHAIR",
-  "DEPARTMENT",
-  "GENERAL_ADMIN",
-  "CAO",
-  "CONTRACTOR",
-]);
+export const accountStatusSchema = z.enum(Object.values(ACCOUNT_STATUS));
 
-export const accountStatusSchema = z.enum([
-  "ACTIVE",
-  "INACTIVE",
-  "SUSPENDED",
-]);
+const objectIdSchema = z
+  .string()
+  .regex(MONGODB_OBJECT_ID_REGEX, 'Invalid MongoDB ObjectId');
 
-const objectIdSchema = z.string().regex(
-  /^[0-9a-fA-F]{24}$/,
-  "Invalid MongoDB ObjectId"
-);
+const fullNameSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(100)
+  .refine(isValidFullName, 'Invalid full name');
 
 // Public citizen registration
 export const citizenRegisterSchema = z.object({
-  fullName: z.string().trim().min(2).max(100),
+  fullName: fullNameSchema,
 
   email: z.string().trim().email().toLowerCase(),
 
@@ -34,44 +34,60 @@ export const citizenRegisterSchema = z.object({
   wardId: objectIdSchema,
 });
 
-// Official account creation
-export const createOfficialUserSchema = z.object({
-  fullName: z.string().trim().min(2).max(100),
-
+// Citizen login
+export const citizenLoginSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
 
-  password: z.string().min(8).max(72),
-
-  role: userRoleSchema.exclude(["CITIZEN"]),
-
-  municipalityId: objectIdSchema,
-
-  wardId: objectIdSchema.optional(),
-
-  departmentId: objectIdSchema.optional(),
-}).superRefine((data, ctx) => {
-  if (
-    ["WARD_CHAIR"].includes(data.role) &&
-    !data.wardId
-  ) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["wardId"],
-      message: "wardId is required for WARD_CHAIR",
-    });
-  }
-
-  if (
-    data.role === "DEPARTMENT" &&
-    !data.departmentId
-  ) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["departmentId"],
-      message: "departmentId is required for DEPARTMENT",
-    });
-  }
+  password: z.string().min(1, 'Password is required'),
 });
+
+// Official / contractor login
+export const officialLoginSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+
+  password: z.string().min(1, 'Password is required'),
+});
+
+// Change password (authenticated user)
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+
+  newPassword: z.string().min(8).max(72),
+});
+
+// Official account creation
+export const createOfficialUserSchema = z
+  .object({
+    fullName: fullNameSchema,
+
+    email: z.string().trim().email().toLowerCase(),
+
+    password: z.string().min(8).max(72),
+
+    role: userRoleSchema.exclude([ROLES.CITIZEN]),
+
+    // municipalityId is taken from the authenticated creator, not the client
+    wardId: objectIdSchema.optional(),
+
+    departmentId: objectIdSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === ROLES.WARD_CHAIR && !data.wardId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['wardId'],
+        message: 'wardId is required for ward chair',
+      });
+    }
+
+    if (data.role === ROLES.DEPARTMENT && !data.departmentId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['departmentId'],
+        message: 'departmentId is required for DEPARTMENT',
+      });
+    }
+  });
 
 // Update account status
 export const updateAccountStatusSchema = z.object({

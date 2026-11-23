@@ -1,23 +1,10 @@
 
 import mongoose from "mongoose";
-
-// Types of actions performed during the proposal approval workflow
-export const APPROVAL_ACTION = Object.freeze({
-  TECHNICAL_REVIEW: "TECHNICAL_REVIEW",
-  ADMIN_REVIEW: "ADMIN_REVIEW",
-  ASSEMBLY_DECISION: "ASSEMBLY_DECISION",
-  ADMIN_APPROVAL: "ADMIN_APPROVAL",
-  RETURN: "RETURN",
-  REJECTION: "REJECTION",
-});
-
-// Possible decisions recorded for an action
-export const APPROVAL_DECISION = Object.freeze({
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-  RETURNED: "RETURNED",
-  NOTED: "NOTED",
-});
+import {
+  APPROVAL_ACTION,
+  APPROVAL_DECISION,
+} from "../constants/index.js";
+export { APPROVAL_ACTION, APPROVAL_DECISION };
 
 const projectApprovalSchema = new mongoose.Schema(
   {

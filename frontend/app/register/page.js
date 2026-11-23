@@ -1,50 +1,163 @@
-"use client";
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-
-import Button from "@/components/ui/Button";
-import Field from "@/components/ui/Field";
-import PasswordField from "@/components/ui/PasswordField";
-import { signIn } from "@/lib/session";
-import AuthLayout from "@/components/auth/AuthLayout";
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Button from '@/app/components/ui/Button';
+import Field from '@/app/components/ui/Field';
+import SelectField from '@/app/components/ui/SelectField';
+import PasswordField from '@/app/components/ui/PasswordField';
+import { signIn } from '@/lib/session';
+import AuthLayout from '@/app/components/auth/AuthLayout';
+import { api, ApiError } from '@/lib/api';
+import { registerSchema } from '@/lib/schemas';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [v, setV] = useState({ name: "", identity: "", ward: "", password: "", confirm: "" });
-  const [errors, setErrors] = useState({});
-  const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
+  const [wards, setWards] = useState([]);
+  const [formError, setFormError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      wardId: '',
+      password: '',
+      confirm: '',
+    },
+  });
 
-  function onSubmit(e) {
-    e.preventDefault();
-    const n = {};
-    if (!v.name.trim()) n.name = "Enter your full name.";
-    if (!v.identity.trim()) n.identity = "Enter an email or mobile number.";
-    if (!/^\d+$/.test(v.ward) || Number(v.ward) < 1) n.ward = "Enter your ward number, for example 4.";
-    if (v.password.length < 8) n.password = "Use at least 8 characters.";
-    if (v.confirm !== v.password) n.confirm = "Passwords do not match.";
-    setErrors(n);
-    if (Object.keys(n).length) return;
-    signIn({ role: "citizen", name: v.name.trim(), identity: v.identity.trim(), ward: Number(v.ward) }, true);
-    router.push("/citizen");
+  useEffect(() => {
+    api
+      .getWards()
+      .then((list) => setWards(Array.isArray(list) ? list : []))
+      .catch(() => setWards([]));
+  }, []);
+
+  async function onValid(v) {
+    setFormError('');
+    const ward = wards.find((w) => w._id === v.wardId);
+    if (!ward) {
+      setError('wardId', { message: 'Select your ward.' });
+      return;
+    }
+    try {
+      const { user, token } = await api.registerCitizen({
+        fullName: v.name.trim(),
+        email: v.email.trim().toLowerCase(),
+        password: v.password,
+        municipalityId: ward.municipalityId,
+        wardId: ward._id,
+      });
+      // Pull the municipality name for the UI labels (non-fatal if it fails).
+      let municipality;
+      try {
+        const me = await api.getMe(token);
+        municipality = me?.municipalityId?.name;
+      } catch {
+        /* ignore */
+      }
+      signIn(
+        {
+          role: 'citizen',
+          name: user.fullName,
+          ward: ward.wardNumber,
+          municipality,
+          token,
+          user,
+        },
+        true,
+      );
+      router.push('/citizen');
+    } catch (err) {
+      const fe = err instanceof ApiError ? err.details?.fieldErrors : undefined;
+      if (fe?.fullName?.[0]) setError('name', { message: fe.fullName[0] });
+      if (fe?.email?.[0]) setError('email', { message: fe.email[0] });
+      if (fe?.password?.[0]) setError('password', { message: fe.password[0] });
+      setFormError(err.message || 'Registration failed.');
+    }
   }
 
   return (
     <AuthLayout>
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-        <h1 className="text-[30px] font-bold leading-tight text-ink">Create a citizen account</h1>
-        <p className="text-sm text-ink-3">
-          Your contact details stay private. Only your comments appear on projects.
+      <form
+        onSubmit={handleSubmit(onValid)}
+        noValidate
+        className='flex flex-col gap-5'
+      >
+        <h1 className='text-[32px] font-bold leading-tight text-ink'>
+          Create a citizen account
+        </h1>
+        <p className='text-sm text-ink-3'>
+          Your contact details stay private. Only your comments appear on
+          projects.
         </p>
-        <Field label="Full name" autoComplete="name" value={v.name} onChange={set("name")} error={errors.name} />
-        <Field label="Email or mobile number" autoComplete="username" value={v.identity} onChange={set("identity")} error={errors.identity} />
-        <Field label="Ward number" inputMode="numeric" value={v.ward} onChange={set("ward")} error={errors.ward} hint="You can find this on your municipal tax receipt." />
-        <PasswordField label="Password" autoComplete="new-password" value={v.password} onChange={set("password")} error={errors.password} />
-        <PasswordField label="Confirm password" autoComplete="new-password" value={v.confirm} onChange={set("confirm")} error={errors.confirm} />
-        <Button type="submit" className="w-full">Create account</Button>
-        <p className="text-center text-[13px] text-ink-2">
-          Already registered?{" "}
-          <Link href="/login" className="font-medium text-brand hover:underline">Sign in</Link>
+
+        {formError && (
+          <div
+            role='alert'
+            className='rounded-lg border border-danger/30 bg-danger-tint px-3.5 py-2.5 text-sm text-danger'
+          >
+            {formError}
+          </div>
+        )}
+
+        <Field
+          label='Full name'
+          autoComplete='name'
+          {...register('name')}
+          error={errors.name?.message}
+        />
+        <Field
+          label='Email address'
+          type='email'
+          autoComplete='email'
+          placeholder='name@example.com'
+          {...register('email')}
+          error={errors.email?.message}
+        />
+        <SelectField
+          label='Ward'
+          {...register('wardId')}
+          error={errors.wardId?.message}
+          hint='Select the ward you live in.'
+        >
+          <option value=''>Select your ward</option>
+          {wards.map((w) => (
+            <option key={w._id} value={w._id}>
+              Ward {w.wardNumber} — {w.name}
+            </option>
+          ))}
+        </SelectField>
+        <PasswordField
+          label='Password'
+          autoComplete='new-password'
+          {...register('password')}
+          error={errors.password?.message}
+        />
+        <PasswordField
+          label='Confirm password'
+          autoComplete='new-password'
+          {...register('confirm')}
+          error={errors.confirm?.message}
+        />
+        <Button type='submit' disabled={isSubmitting} className='w-full'>
+          {isSubmitting ? 'Creating account…' : 'Create account'}
+        </Button>
+        <p className='text-center text-[14px] text-ink-2'>
+          Already registered?{' '}
+          <Link
+            href='/login'
+            className='font-medium text-brand hover:underline'
+          >
+            Sign in
+          </Link>
         </p>
       </form>
     </AuthLayout>

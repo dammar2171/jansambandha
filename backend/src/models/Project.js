@@ -1,28 +1,13 @@
-
-import mongoose from "mongoose";
-
-// Project lifecycle statuses
-export const PROJECT_STATUS = Object.freeze({
-  APPROVED: "APPROVED",
-  ASSIGNED: "ASSIGNED",
-  ONGOING: "ONGOING",
-  DELAYED: "DELAYED",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-});
-
-// Project visibility
-export const PROJECT_VISIBILITY = Object.freeze({
-  PUBLIC: "PUBLIC",
-  INTERNAL: "INTERNAL",
-});
+import mongoose from 'mongoose';
+import { PROJECT_STATUS, PROJECT_VISIBILITY } from '../constants/index.js';
+export { PROJECT_STATUS, PROJECT_VISIBILITY };
 
 const projectSchema = new mongoose.Schema(
   {
     // Original approved proposal (null for permitted direct creation)
     proposalId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "ProjectProposal",
+      ref: 'ProjectProposal',
       default: null,
       index: true,
     },
@@ -44,14 +29,14 @@ const projectSchema = new mongoose.Schema(
     // Organizational scope
     wardId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Ward",
+      ref: 'Ward',
       required: true,
       index: true,
     },
 
     municipalityId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Municipality",
+      ref: 'Municipality',
       required: true,
       index: true,
     },
@@ -72,14 +57,15 @@ const projectSchema = new mongoose.Schema(
     // Project assignment
     contractorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       default: null,
     },
 
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-      default: null,
+      ref: 'Department',
+      required: true,
+      index: true,
     },
 
     // Planned implementation dates
@@ -110,7 +96,7 @@ const projectSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Useful for municipality-level and ward-level project filtering
@@ -121,6 +107,6 @@ projectSchema.index({
   fiscalYear: 1,
 });
 
-const Project = mongoose.model("Project", projectSchema);
+const Project = mongoose.model('Project', projectSchema);
 
 export default Project;

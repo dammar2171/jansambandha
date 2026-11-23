@@ -1,32 +1,20 @@
-
-import mongoose from "mongoose";
-
-// Available reactions
-export const FEEDBACK_REACTION = Object.freeze({
-  LIKE: "LIKE",
-  DISLIKE: "DISLIKE",
-});
-
-// Comment moderation statuses
-export const MODERATION_STATUS = Object.freeze({
-  VISIBLE: "VISIBLE",
-  HIDDEN: "HIDDEN",
-  FLAGGED: "FLAGGED",
-});
+import mongoose from 'mongoose';
+import { FEEDBACK_REACTION, MODERATION_STATUS } from '../constants/index.js';
+export { FEEDBACK_REACTION, MODERATION_STATUS };
 
 const projectFeedbackSchema = new mongoose.Schema(
   {
     // Project receiving the feedback
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
+      ref: 'Project',
       required: true,
     },
 
     // User who submitted the feedback
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
 
@@ -45,6 +33,22 @@ const projectFeedbackSchema = new mongoose.Schema(
       maxlength: 1000,
     },
 
+    // Star rating 1-5; null when the user has not rated the project
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+      default: null,
+    },
+
+    // Optional note left with a star rating (kept separate from the public comment)
+    ratingNote: {
+      type: String,
+      trim: true,
+      default: null,
+      maxlength: 1000,
+    },
+
     // Moderation status of the feedback
     moderationStatus: {
       type: String,
@@ -54,32 +58,30 @@ const projectFeedbackSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // One feedback document per user for each project
-projectFeedbackSchema.index(
-  { projectId: 1, userId: 1 },
-  { unique: true }
-);
+projectFeedbackSchema.index({ projectId: 1, userId: 1 }, { unique: true });
 
 // Prevent completely empty feedback records
-projectFeedbackSchema.pre("validate", function () {
+projectFeedbackSchema.pre('validate', function () {
   const hasReaction = this.reaction !== null;
   const hasComment =
-    typeof this.comment === "string" && this.comment.trim().length > 0;
+    typeof this.comment === 'string' && this.comment.trim().length > 0;
+  const hasRating = this.rating !== null && this.rating !== undefined;
 
-  if (!hasReaction && !hasComment) {
+  if (!hasReaction && !hasComment && !hasRating) {
     this.invalidate(
-      "comment",
-      "Feedback must contain a reaction or a comment."
+      'comment',
+      'Feedback must contain a reaction, a comment, or a rating.',
     );
   }
 });
 
 const ProjectFeedback = mongoose.model(
-  "ProjectFeedback",
-  projectFeedbackSchema
+  'ProjectFeedback',
+  projectFeedbackSchema,
 );
 
 export default ProjectFeedback;
