@@ -72,10 +72,10 @@ export default function CitizenHome() {
   return (
     <>
       <TopBar crumbs={[{ label: 'Home' }]} />
-      <main className='flex flex-col gap-6 p-8'>
-        <div className='flex items-center justify-between gap-6'>
+      <main className='flex flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:p-8'>
+        <div className='flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6'>
           <div>
-            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
+            <h1 className='text-[24px] font-bold leading-[30px] text-ink sm:text-[28px] sm:leading-[33px]'>
               Namaste, {first}
             </h1>
             <p className='mt-1 text-sm leading-[18px] text-ink-3'>
@@ -84,22 +84,22 @@ export default function CitizenHome() {
               is what is happening in your ward
             </p>
           </div>
-          <ButtonLink href='/citizen/complaints' size='dash'>
+          <ButtonLink href='/citizen/complaints' size='dash' className='w-full sm:w-auto'>
             <Icon name='plus' size={16} />
             Report a problem
           </ButtonLink>
         </div>
 
-        <div className='grid grid-cols-2 gap-4 xl:grid-cols-4'>
+        <div className='grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4 xl:grid-cols-4'>
           {kpis.map((k) => (
-            <Card key={k.label} className='flex items-center gap-3.5 p-4'>
+            <Card key={k.label} className='flex min-w-0 flex-wrap items-center gap-2 p-4 sm:flex-nowrap sm:gap-3.5'>
               <span
-                className={`grid size-11 place-items-center rounded-xl ${k.tone}`}
+                className={`grid size-9 shrink-0 place-items-center rounded-xl sm:size-11 ${k.tone}`}
               >
                 <Icon name={k.icon} size={22} />
               </span>
-              <div>
-                <p className='text-[28px] font-bold leading-[33px] text-ink'>
+              <div className='min-w-0'>
+                <p className='text-[24px] font-bold leading-[30px] text-ink sm:text-[28px] sm:leading-[33px]'>
                   {k.value}
                 </p>
                 <p className='text-[14px] leading-4 text-ink-3'>{k.label}</p>
@@ -108,11 +108,11 @@ export default function CitizenHome() {
           ))}
         </div>
 
-        <div className='grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]'>
+        <div className='grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_340px]'>
           <ProjectList />
 
           <div className='flex flex-col gap-4'>
-            <Card className='flex flex-col gap-3 p-5'>
+            <Card className='flex flex-col gap-3 p-4 sm:p-5'>
               <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                 Need something fixed?
               </h2>
@@ -139,8 +139,8 @@ export default function CitizenHome() {
               </ButtonLink>
             </Card>
 
-            <Card className='flex flex-col gap-3 p-5'>
-              <div className='flex items-center justify-between gap-3'>
+            <Card className='flex flex-col gap-3 p-4 sm:p-5'>
+              <div className='flex flex-wrap items-center justify-between gap-3'>
                 <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                   My latest complaint
                 </h2>
@@ -152,7 +152,7 @@ export default function CitizenHome() {
                     <p className='text-xs font-semibold leading-[16px] text-brand group-hover:underline'>
                       {latest.id}
                     </p>
-                    <p className='text-[14px] leading-[18px] text-ink'>
+                    <p className='break-words text-[14px] leading-[18px] text-ink'>
                       {latest.title}
                     </p>
                   </Link>

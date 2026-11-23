@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from '@/lib/session';
@@ -32,9 +33,13 @@ export default function CaoShell({ children }) {
     <div className='min-h-screen bg-[#f3f6fa] text-slate-800 md:flex'>
       <aside className='w-full bg-[#102b49] text-white md:fixed md:inset-y-0 md:flex md:w-[248px] md:flex-col'>
         <div className='flex h-[76px] items-center gap-3 border-b border-white/10 px-6'>
-          <div className='grid h-10 w-10 place-items-center rounded-lg bg-white text-[#102b49] text-xl font-bold'>
-            J
-          </div>
+          <Image
+            src='/jansambandha_logo.jpeg'
+            alt='JanSambandha logo'
+            width={40}
+            height={40}
+            className='h-10 w-10 rounded-lg bg-white object-contain p-1'
+          />
           <div>
             <div className='font-semibold tracking-wide'>JanSambandha</div>
             <div className='text-[12px] text-slate-300'>

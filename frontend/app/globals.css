@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-/* Scale the whole UI up a little: all rem-based text and spacing grow from
-   this root size (default 16px). Paired with larger fixed px type below. */
-html {
-  font-size: 17px;
+/* Keep spacing compact on phones and scale the UI up on larger screens. */
+@media (min-width: 768px) {
+  html {
+    font-size: 17px;
+  }
 }
 
 :root {

@@ -97,7 +97,7 @@ function ReportForm({ onCreated }) {
   }
 
   return (
-    <Card className='self-start p-5'>
+    <Card className='self-start p-4 sm:p-5'>
       <form
         onSubmit={handleSubmit(onValid)}
         noValidate
@@ -125,7 +125,7 @@ function ReportForm({ onCreated }) {
                   role='radio'
                   aria-checked={on}
                   onClick={() => setCategory(c)}
-                  className={`rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  className={`shrink-0 whitespace-nowrap rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                     on
                       ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
                       : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
@@ -194,11 +194,11 @@ function ReportForm({ onCreated }) {
           </div>
         </FieldShell>
 
-        <div className='flex items-start gap-2.5'>
+        <div className='flex flex-wrap items-center gap-2.5'>
           <Button
             type='submit'
             size='dash'
-            className='flex-1'
+            className='min-w-[160px] flex-1'
             disabled={isSubmitting}
           >
             <Icon name='send' size={16} />
@@ -280,7 +280,7 @@ function EditForm({ complaint, onDone }) {
                 role='radio'
                 aria-checked={on}
                 onClick={() => setCategory(c)}
-                className={`rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                className={`shrink-0 whitespace-nowrap rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                   on
                     ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
                     : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
@@ -327,11 +327,11 @@ function EditForm({ complaint, onDone }) {
         />
       </FieldShell>
 
-      <div className='flex items-center gap-2.5'>
+      <div className='flex flex-wrap items-center gap-2.5'>
         <Button
           type='submit'
           size='dash'
-          className='flex-1'
+          className='min-w-[160px] flex-1'
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Saving…' : 'Save changes'}
@@ -381,9 +381,9 @@ export default function ComplaintsPage() {
   return (
     <>
       <TopBar crumbs={[{ label: 'Complaints' }]} />
-      <main className='flex flex-col gap-6 p-8'>
-        <div className='py-6'>
-          <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
+      <main className='flex w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:p-8'>
+        <div className='py-2 sm:py-6'>
+          <h1 className='text-[24px] font-bold leading-[30px] text-ink sm:text-[28px] sm:leading-[33px]'>
             Complaints
           </h1>
           <p className='mt-1 text-sm leading-[18px] text-ink-3'>
@@ -391,21 +391,21 @@ export default function ComplaintsPage() {
           </p>
         </div>
 
-        <div className='grid items-start gap-6 xl:grid-cols-[520px_minmax(0,1fr)]'>
+        <div className='grid items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]'>
           <ReportForm onCreated={setSelectedId} />
 
           <div className='flex flex-col gap-4'>
-            <Card className='p-5'>
-              <div className='mb-1.5 flex items-center justify-between'>
+            <Card className='p-4 sm:p-5'>
+              <div className='mb-1.5 flex flex-wrap items-center justify-between gap-2'>
                 <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
                   My complaints
                 </h2>
                 <Badge tone='warn'>{open} open</Badge>
               </div>
-              <div role='table' aria-label='My complaints' className='mt-3'>
+              <div role='table' aria-label='My complaints' className='mt-3 overflow-x-auto'>
                 <div
                   role='row'
-                  className='grid grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3'
+                  className='grid min-w-[360px] grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3'
                 >
                   <span role='columnheader'>Tracking no</span>
                   <span role='columnheader'>Complaint</span>
@@ -426,7 +426,7 @@ export default function ComplaintsPage() {
                             setSelectedId(c.id);
                             setEditing(false);
                           }}
-                          className={`grid grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
+                          className={`grid min-w-[360px] grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
                         >
                           <span role='cell' className='font-medium text-brand'>
                             {c.id}

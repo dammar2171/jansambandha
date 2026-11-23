@@ -36,7 +36,7 @@ function Metric({ label, value, note }) {
 
 function Comment({ c, onReport }) {
   return (
-    <div className={`flex gap-2.5 ${c.reply ? 'pl-11' : ''}`}>
+    <div className={`flex gap-2.5 ${c.reply ? 'pl-5 sm:pl-11' : ''}`}>
       <span
         className={`grid size-[34px] shrink-0 place-items-center rounded-full text-xs font-semibold ${c.role ? 'bg-brand text-white' : 'bg-brand-tint text-brand'}`}
       >
@@ -50,7 +50,7 @@ function Comment({ c, onReport }) {
           {c.role && <Badge tone='brand'>{c.role}</Badge>}
           <span className='text-xs leading-[16px] text-ink-3'>{c.when}</span>
         </div>
-        <p className='mt-1 text-sm leading-5 text-ink'>{c.text}</p>
+        <p className='mt-1 break-words text-sm leading-5 text-ink'>{c.text}</p>
         <div className='mt-1 flex items-center gap-3 text-xs leading-[16px] text-ink-3'>
           <button
             type='button'
@@ -76,7 +76,7 @@ export default function ProjectDetail() {
   return (
     <Suspense
       fallback={
-        <main className='p-8' aria-busy='true'>
+        <main className='p-4 sm:p-6 lg:p-8' aria-busy='true'>
           Loading project…
         </main>
       }
@@ -159,7 +159,7 @@ function ProjectDetailContent() {
             { label: 'Loading' },
           ]}
         />
-        <main className='p-8 text-sm text-ink-3' aria-busy='true'>
+        <main className='p-4 text-sm text-ink-3 sm:p-6 lg:p-8' aria-busy='true'>
           Loading project…
         </main>
       </>
@@ -175,7 +175,7 @@ function ProjectDetailContent() {
             { label: 'Not found' },
           ]}
         />
-        <main className='p-8'>
+        <main className='p-4 sm:p-6 lg:p-8'>
           <Card className='max-w-lg p-6'>
             <h1 className='text-lg font-semibold'>Project not found</h1>
             <p className='mt-1 text-sm text-ink-3'>
@@ -307,11 +307,11 @@ function ProjectDetailContent() {
           { label: p.title },
         ]}
       />
-      <main className='flex flex-col gap-6 p-8'>
+      <main className='flex flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:p-8'>
         <div className='flex flex-wrap items-center justify-between gap-6'>
           <div>
             <div className='flex flex-wrap items-center gap-3'>
-              <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
+              <h1 className='min-w-0 break-words text-[24px] font-bold leading-[30px] text-ink sm:text-[28px] sm:leading-[33px]'>
                 {p.title}
               </h1>
               <StatusBadge status={p.status} />
@@ -322,11 +322,11 @@ function ProjectDetailContent() {
               {p.place} · {p.fy} · {p.dept}
             </p>
           </div>
-          <div className='flex items-center gap-2.5'>
-            <ReactionButton
-              kind='up'
-              label='Like'
-              count={fb.up}
+        <div className='flex flex-wrap items-center gap-2.5'>
+          <ReactionButton
+            kind='up'
+            label='Like'
+            count={fb.up}
               active={fb.mine === 'up'}
               onClick={() => react('up')}
             />
@@ -349,16 +349,16 @@ function ProjectDetailContent() {
           </div>
         </div>
 
-        <div className='grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]'>
+        <div className='grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_340px]'>
           <div className='flex flex-col gap-4'>
-            <Card className='flex flex-col gap-3.5 p-5'>
-              <div className='flex items-center justify-between gap-3'>
+            <Card className='flex flex-col gap-3.5 p-4 sm:p-5'>
+              <div className='flex flex-wrap items-center justify-between gap-3'>
                 <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Project progress
                 </h2>
                 <Badge tone='ok'>Official-verified by department</Badge>
               </div>
-              <div className='grid grid-cols-2 items-start gap-3 lg:grid-cols-4'>
+              <div className='grid grid-cols-1 items-start gap-3 min-[380px]:grid-cols-2 xl:grid-cols-4'>
                 <Metric label='Planned' {...p.metrics.planned} />
                 <Metric label='Verified' {...p.metrics.verified} />
                 <Metric label='Financial' {...p.metrics.financial} />
@@ -394,7 +394,7 @@ function ProjectDetailContent() {
               )}
             </Card>
 
-            <Card className='flex flex-col gap-3.5 p-5'>
+            <Card className='flex flex-col gap-3.5 p-4 sm:p-5'>
               <div className='flex items-center gap-2.5'>
                 <h2 className='text-base font-semibold leading-[23px] text-ink'>
                   Community discussion
@@ -437,14 +437,14 @@ function ProjectDetailContent() {
           </div>
 
           <div className='flex flex-col gap-4'>
-            <Card className='p-5'>
+            <Card className='p-4 sm:p-5'>
               <h2 className='mb-3 text-[16px] font-semibold leading-[21px] text-ink'>
                 Project journey
               </h2>
               <Timeline steps={p.journey} />
             </Card>
 
-            <Card className='p-5'>
+            <Card className='p-4 sm:p-5'>
               <h2 className='mb-2.5 text-[16px] font-semibold leading-[21px] text-ink'>
                 Budget
               </h2>
@@ -455,22 +455,22 @@ function ProjectDetailContent() {
                   ['Contracted', p.budget.contracted],
                   ['Reported spent', p.budget.spent],
                 ].map(([k, v]) => (
-                  <div key={k} className='flex justify-between'>
+                  <div key={k} className='flex flex-wrap justify-between gap-x-3'>
                     <dt className='text-ink-3'>{k}</dt>
-                    <dd className='font-medium text-ink'>{v}</dd>
+                    <dd className='break-words font-medium text-ink'>{v}</dd>
                   </div>
                 ))}
               </dl>
             </Card>
 
-            <Card className='flex flex-col gap-3 p-5'>
+            <Card className='flex flex-col gap-3 p-4 sm:p-5'>
               <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                 Your feedback
               </h2>
               {!showRatingForm ? (
                 <div
                   role='status'
-                  className='rounded-[10px] border border-ok/25 bg-ok-tint p-3 text-[14px] leading-[19px] text-ok'
+                  className='flex flex-wrap items-center gap-1 rounded-[10px] border border-ok/25 bg-ok-tint p-3 text-[14px] leading-[19px] text-ok'
                 >
                   You rated this project {fb.myRating} of 5 (
                   {LABELS[fb.myRating - 1]}).
@@ -481,7 +481,7 @@ function ProjectDetailContent() {
                       setRatingText(fb.myRatingNote || '');
                       setEditingRating(true);
                     }}
-                    className='ml-2 font-semibold underline'
+                    className='font-semibold underline'
                   >
                     Edit
                   </button>

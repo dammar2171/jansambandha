@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/app/components/ui/Button';
@@ -33,9 +34,13 @@ export default function SignInPage() {
     <div className='grid min-h-screen lg:grid-cols-2'>
       <section className='flex flex-col justify-between bg-brand-deep p-8 text-white lg:p-16'>
         <div className='flex items-center gap-2.5'>
-          <div className='grid h-7 w-7 place-items-center rounded-md bg-brass font-serif text-base font-semibold text-[#0b2545]'>
-            J
-          </div>
+          <Image
+            src='/jansambandha_logo.jpeg'
+            alt='JanSambandha logo'
+            width={28}
+            height={28}
+            className='h-7 w-7 rounded-md bg-white object-contain p-0.5'
+          />
           <div>
             <p className='font-serif text-lg leading-[24px] font-semibold'>
               JanSambandha

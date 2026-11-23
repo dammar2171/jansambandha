@@ -1,7 +1,9 @@
 'use client';
 import { Suspense, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
+import Icon from '@/app/components/ui/Icon';
 import Toast from '@/app/components/ui/Toast';
 import { getRole } from '@/lib/roles';
 import { getToken, signOut, useSession } from '@/lib/session';
@@ -12,6 +14,7 @@ import { api } from '@/lib/api';
 export default function DashboardShell({ role, roleLabel, nav, children }) {
   const session = useSession();
   const router = useRouter();
+  const path = usePathname();
   const unread = useStore((s) => s.notifications.filter((n) => !n.read).length);
 
   useEffect(() => {
@@ -37,13 +40,13 @@ export default function DashboardShell({ role, roleLabel, nav, children }) {
 
   return (
     <div
-      className={authorized ? 'flex min-h-screen bg-canvas' : 'hidden'}
+      className={authorized ? 'flex min-h-screen flex-col bg-canvas lg:flex-row' : 'hidden'}
       aria-hidden={!authorized}
     >
       <Suspense
         fallback={
           <aside
-            className='h-screen w-[248px] shrink-0 bg-brand-deep'
+            className='hidden h-screen w-[220px] shrink-0 bg-brand-deep lg:block xl:w-[248px]'
             aria-hidden
           />
         }
@@ -64,7 +67,31 @@ export default function DashboardShell({ role, roleLabel, nav, children }) {
           }}
         />
       </Suspense>
-      <div className='flex min-w-0 flex-1 flex-col'>{children}</div>
+      <div className='flex w-full min-w-0 flex-1 flex-col lg:w-auto'>
+        <nav
+          aria-label='Mobile navigation'
+          className='flex gap-1 overflow-x-auto border-b border-line bg-brand-deep px-3 py-2 lg:hidden'
+        >
+          {nav.map((it) => {
+            const active =
+              nav[0].href === it.href ? path === it.href : path.startsWith(it.href);
+            return (
+              <Link
+                key={it.href}
+                href={it.href}
+                aria-current={active ? 'page' : undefined}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                  active ? 'bg-brand-mid text-white' : 'text-side-text'
+                }`}
+              >
+                <Icon name={it.icon} />
+                {it.label}
+              </Link>
+            );
+          })}
+        </nav>
+        {children}
+      </div>
       <Toast />
     </div>
   );

@@ -50,14 +50,14 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
 
   return (
     <section aria-labelledby='plist' className='flex flex-col gap-4'>
-      <div className='flex items-center justify-between gap-4'>
+      <div className='flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4'>
         <h2
           id='plist'
           className='text-[18px] font-semibold leading-[24px] text-ink'
         >
           {title}
         </h2>
-        <div className='flex gap-2' role='group' aria-label='Filter by stage'>
+        <div className='flex flex-wrap gap-2' role='group' aria-label='Filter by stage'>
           {FILTERS.map(([label]) => {
             const on = label === filter;
             return (
@@ -66,7 +66,7 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
                 type='button'
                 aria-pressed={on}
                 onClick={() => setFilter(label)}
-                className={`rounded-full px-[15px] py-[5px] text-[14px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-[15px] py-[5px] text-[14px] font-medium leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                   on
                     ? 'bg-brand text-white'
                     : 'border border-line-strong bg-surface text-ink-2 hover:bg-surface-alt'
@@ -82,7 +82,7 @@ export default function ProjectList({ title = 'Projects in your ward' }) {
       {list.length ? (
         list.map((p) => <ProjectCard key={p.id} project={p} />)
       ) : (
-        <div className='rounded-xl border border-dashed border-line-strong bg-surface p-10 text-center text-sm text-ink-3'>
+        <div className='rounded-xl border border-dashed border-line-strong bg-surface p-6 text-center text-sm text-ink-3 sm:p-10'>
           No projects match{search ? ` \u201c${search}\u201d` : ' this filter'}.
           Try another filter or clear the search.
         </div>

@@ -37,7 +37,7 @@ export default function Timeline({ steps }) {
                 />
               )}
             </div>
-            <div className={last ? '' : 'pb-2'}>
+            <div className={`min-w-0 break-words ${last ? '' : 'pb-2'}`}>
               <p
                 className={`text-[14px] font-semibold leading-[18px] ${s.state === 'todo' ? 'text-ink-3' : 'text-ink'}`}
               >

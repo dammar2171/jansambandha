@@ -16,10 +16,10 @@ export default function TopBar({ crumbs }) {
     .toUpperCase();
 
   return (
-    <header className='flex h-16 shrink-0 items-center gap-4 border-b border-line bg-surface px-8'>
+    <header className='flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-4 sm:h-16 sm:gap-4 sm:px-6 lg:px-8'>
       <nav
         aria-label='Breadcrumb'
-        className='flex min-w-0 flex-1 items-center gap-2 text-[14px] leading-4'
+        className='hidden min-w-0 flex-1 items-center gap-2 text-[14px] leading-4 sm:flex'
       >
         {crumbs.map((c, i) => (
           <span key={c.label} className='flex min-w-0 items-center gap-2'>
@@ -29,7 +29,7 @@ export default function TopBar({ crumbs }) {
               </span>
             )}
             {c.href ? (
-              <Link href={c.href} className='text-ink-3 hover:text-brand'>
+              <Link href={c.href} className='truncate text-ink-3 hover:text-brand'>
                 {c.label}
               </Link>
             ) : (
@@ -44,7 +44,7 @@ export default function TopBar({ crumbs }) {
         ))}
       </nav>
 
-      <label className='relative block w-[260px]'>
+      <label className='relative block min-w-0 flex-1 sm:w-[180px] sm:flex-none lg:w-[220px] xl:w-[260px]'>
         <span className='sr-only'>Search projects and complaints</span>
         <Icon
           name='search'
@@ -60,7 +60,7 @@ export default function TopBar({ crumbs }) {
         />
       </label>
 
-      <span className='rounded-full bg-brand-tint px-2.5 py-[3px] text-xs font-semibold leading-[16px] text-brand'>
+      <span className='hidden rounded-full bg-brand-tint px-2.5 py-[3px] text-xs font-semibold leading-[16px] text-brand lg:inline-flex'>
         FY 2083/84
       </span>
 
