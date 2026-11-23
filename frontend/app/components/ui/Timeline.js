@@ -37,14 +37,14 @@ export default function Timeline({ steps }) {
                 />
               )}
             </div>
-            <div className={last ? '' : 'pb-2'}>
+            <div className={`min-w-0 break-words ${last ? '' : 'pb-2'}`}>
               <p
-                className={`text-[13px] font-semibold leading-[17px] ${s.state === 'todo' ? 'text-ink-3' : 'text-ink'}`}
+                className={`text-[14px] font-semibold leading-[18px] ${s.state === 'todo' ? 'text-ink-3' : 'text-ink'}`}
               >
                 {s.title}
               </p>
               {s.sub && (
-                <p className='text-xs leading-[15px] text-ink-3'>{s.sub}</p>
+                <p className='text-xs leading-[16px] text-ink-3'>{s.sub}</p>
               )}
             </div>
           </li>

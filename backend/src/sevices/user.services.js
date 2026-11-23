@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Ward from '../models/Ward.js';
 import Department from '../models/Department.js';
 import bcrypt from 'bcrypt';
+import auditLogServices from './auditLog.services.js';
 import { AppError } from '../utils/AppError.js';
 import { generateAccessToken } from '../utils/jwt.js';
 import {
@@ -53,7 +54,10 @@ const listUsers = async (currentUser, query) => {
   }
 
   // 4. passwordHash is select:false, so it is never returned
-  return User.find(filter).sort({ createdAt: -1 });
+  return User.find(filter)
+    .populate('wardId', 'wardNumber name')
+    .populate('departmentId', 'name')
+    .sort({ createdAt: -1 });
 };
 
 const createOfficialUser = async (currentUser, input) => {
@@ -117,6 +121,14 @@ const createOfficialUser = async (currentUser, input) => {
       accountStatus: ACCOUNT_STATUS.ACTIVE,
     });
 
+    await auditLogServices.recordAudit({
+      actorUserId: currentUser._id,
+      action: 'CREATE_USER',
+      entityType: 'User',
+      entityId: user._id,
+      after: { email: user.email, role: user.role },
+    });
+
     const safeUser = user.toObject();
     delete safeUser.passwordHash;
     return safeUser;
@@ -140,7 +152,13 @@ const updateUserStatus = async (currentUser, targetUserId, accountStatus) => {
     throw new AppError('You cannot change your own account status', 400);
   }
 
-  // 3. Update the target user, scoped to the admin's own municipality
+  // 3. Capture the previous status for the audit trail
+  const prev = await User.findOne({
+    _id: targetUserId,
+    municipalityId: currentUser.municipalityId,
+  }).select('accountStatus');
+
+  // 4. Update the target user, scoped to the admin's own municipality
   const user = await User.findOneAndUpdate(
     { _id: targetUserId, municipalityId: currentUser.municipalityId },
     { accountStatus },
@@ -149,6 +167,15 @@ const updateUserStatus = async (currentUser, targetUserId, accountStatus) => {
   if (!user) {
     throw new AppError('User not found', 404);
   }
+
+  await auditLogServices.recordAudit({
+    actorUserId: currentUser._id,
+    action: 'UPDATE_USER_STATUS',
+    entityType: 'User',
+    entityId: user._id,
+    before: prev ? { accountStatus: prev.accountStatus } : null,
+    after: { accountStatus },
+  });
 
   // passwordHash is select:false, so it is never returned
   return user;

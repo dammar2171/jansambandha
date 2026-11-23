@@ -9,7 +9,7 @@ export function ScoreCard({ parts = [], total = 0, preview = false }) {
     <Card className='p-5'>
       <div className='flex items-start justify-between gap-3'>
         <div>
-          <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+          <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
             {preview ? 'Priority score preview' : 'Priority score'}
           </h2>
           <p className='mt-1 text-xs text-ink-3'>
@@ -21,7 +21,7 @@ export function ScoreCard({ parts = [], total = 0, preview = false }) {
       {entries.length > 0 && (
         <dl className='mt-4 flex flex-col gap-2'>
           {entries.map(([label, value]) => (
-            <div key={label} className='flex justify-between gap-3 text-[13px]'>
+            <div key={label} className='flex justify-between gap-3 text-[14px]'>
               <dt className='text-ink-3'>{label}</dt>
               <dd className='font-medium text-ink'>{value}</dd>
             </div>

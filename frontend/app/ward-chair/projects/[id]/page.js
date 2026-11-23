@@ -1,5 +1,5 @@
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Icon from '@/app/components/ui/Icon';
@@ -12,7 +12,16 @@ import Timeline from '@/app/components/ui/Timeline';
 import { ScoreCard } from '@/app/components/ward-chair/ScorePanel';
 import { downloadCsv } from '@/lib/csv';
 import { rs } from '@/lib/wc-score';
-import { isEditable, showToast, submitProposal, useWc } from '@/lib/wc-store';
+import {
+  isEditable,
+  showToast,
+  submitProposal,
+  upsertProject,
+  useWc,
+} from '@/lib/wc-store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapProposal } from '@/lib/proposals';
 
 export default function WardProjectDetail() {
   return (
@@ -31,6 +40,31 @@ export default function WardProjectDetail() {
 function WardProjectDetailContent() {
   const { id } = useParams();
   const p = useWc((s) => s.projects.find((x) => x.id === id));
+  const [submitting, setSubmitting] = useState(false);
+
+  // Load the real proposal so a direct link works and the data stays fresh.
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProposal(token, id)
+      .then((data) => upsertProject(mapProposal(data)))
+      .catch(() => {});
+  }, [id]);
+
+  async function onSubmit() {
+    const token = getToken();
+    if (!token) return;
+    setSubmitting(true);
+    try {
+      await api.submitProposal(token, id);
+      submitProposal(id); // flip local status + show toast
+    } catch (err) {
+      showToast(err.message || 'Could not submit the proposal.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (!p) {
     return (
@@ -101,13 +135,13 @@ function WardProjectDetailContent() {
         <div className='flex flex-wrap items-center justify-between gap-6'>
           <div>
             <div className='flex flex-wrap items-center gap-3'>
-              <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+              <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
                 {p.title}
               </h1>
               <StatusBadge status={p.status} />
               <Badge>{p.category}</Badge>
             </div>
-            <p className='mt-2 text-[13px] leading-[17px] text-ink-3'>
+            <p className='mt-2 text-[14px] leading-[18px] text-ink-3'>
               {p.place || 'No location yet'} · FY {p.fy}
             </p>
           </div>
@@ -128,13 +162,8 @@ function WardProjectDetailContent() {
               </ButtonLink>
             )}
             {p.status === 'Draft' && (
-              <Button
-                size='dash'
-                onClick={() => {
-                  submitProposal(p.id);
-                }}
-              >
-                Submit to CAO
+              <Button size='dash' onClick={onSubmit} disabled={submitting}>
+                {submitting ? 'Submitting\u2026' : 'Submit to CAO'}
               </Button>
             )}
           </div>
@@ -153,7 +182,7 @@ function WardProjectDetailContent() {
         <div className='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]'>
           <div className='flex flex-col gap-4'>
             <Card className='flex flex-col gap-3 p-5'>
-              <h2 className='text-base font-semibold leading-[21px] text-ink'>
+              <h2 className='text-base font-semibold leading-[23px] text-ink'>
                 Proposal
               </h2>
               <dl className='grid gap-4 text-sm sm:grid-cols-2'>
@@ -193,7 +222,7 @@ function WardProjectDetailContent() {
                     p.docs.map((d) => (
                       <span
                         key={d}
-                        className='inline-flex h-[34px] items-center gap-2 rounded-lg border border-line-strong px-3 text-[13px] text-ink'
+                        className='inline-flex h-[34px] items-center gap-2 rounded-lg border border-line-strong px-3 text-[14px] text-ink'
                       >
                         <Icon name='file' size={16} className='text-ink-3' />
                         {d}
@@ -209,7 +238,7 @@ function WardProjectDetailContent() {
             {p.progress && (
               <Card className='flex flex-col gap-3.5 p-5'>
                 <div className='flex items-center justify-between'>
-                  <h2 className='text-base font-semibold leading-[21px] text-ink'>
+                  <h2 className='text-base font-semibold leading-[23px] text-ink'>
                     Implementation progress
                   </h2>
                   <Badge tone='ok'>Official-verified by department</Badge>
@@ -232,7 +261,7 @@ function WardProjectDetailContent() {
             )}
 
             <Card className='p-5'>
-              <h2 className='mb-3 text-base font-semibold leading-[21px] text-ink'>
+              <h2 className='mb-3 text-base font-semibold leading-[23px] text-ink'>
                 Review and decision history
               </h2>
               <Timeline steps={steps} />
@@ -242,10 +271,10 @@ function WardProjectDetailContent() {
           <div className='flex flex-col gap-4'>
             <ScoreCard parts={p.breakdown} total={p.priority} preview={false} />
             <Card className='p-5'>
-              <h2 className='mb-3 text-[15px] font-semibold leading-[19px] text-ink'>
+              <h2 className='mb-3 text-[16px] font-semibold leading-[21px] text-ink'>
                 Citizen feedback
               </h2>
-              <dl className='flex flex-col gap-2.5 text-[13px] leading-4'>
+              <dl className='flex flex-col gap-2.5 text-[14px] leading-4'>
                 {[
                   [
                     'Community support',

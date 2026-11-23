@@ -1,7 +1,7 @@
 export default function ProgressBar({ label, value, color = "bg-brand", hideValue = false }) {
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between text-xs leading-[15px] text-ink-2">
+      <div className="mb-1.5 flex items-center justify-between text-xs leading-[16px] text-ink-2">
         <span>{label}</span>
         {!hideValue && <span className="font-semibold text-ink">{value}%</span>}
       </div>

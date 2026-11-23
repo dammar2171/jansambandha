@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthLayout>
       <div className='flex flex-col gap-5'>
-        <h1 className='text-[30px] font-bold leading-tight text-ink'>
+        <h1 className='text-[32px] font-bold leading-tight text-ink'>
           Reset your password
         </h1>
         {sent ? (
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         )}
         <Link
           href='/login'
-          className='text-[13px] font-medium text-brand hover:underline'
+          className='text-[14px] font-medium text-brand hover:underline'
         >
           Back to sign in
         </Link>

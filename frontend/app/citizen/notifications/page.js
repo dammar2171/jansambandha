@@ -1,13 +1,29 @@
 'use client';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import TopBar from '@/app/components/layout/TopBar';
 import Card from '@/app/components/ui/Card';
 import Button from '@/app/components/ui/Button';
-import { markAllRead, markRead, useStore } from '@/lib/store';
+import { markAllRead, markRead, setNotifications, useStore } from '@/lib/store';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { mapNotification } from '@/lib/notifications';
 
 export default function NotificationsPage() {
   const list = useStore((s) => s.notifications);
   const unread = list.filter((n) => !n.read).length;
+
+  // Refresh from the backend when the page opens.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getNotifications(token)
+      .then((items) => {
+        if (Array.isArray(items)) setNotifications(items.map(mapNotification));
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -15,10 +31,10 @@ export default function NotificationsPage() {
       <main className='flex max-w-[760px] flex-col gap-6 p-8'>
         <div className='flex items-center justify-between gap-6'>
           <div>
-            <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+            <h1 className='text-[28px] font-bold leading-[33px] text-ink'>
               Notifications
             </h1>
-            <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+            <p className='mt-1 text-sm leading-[18px] text-ink-3'>
               {unread ? `${unread} unread` : 'You are all caught up'}
             </p>
           </div>

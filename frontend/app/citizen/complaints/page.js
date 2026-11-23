@@ -8,7 +8,7 @@ import Badge, { StatusBadge } from '@/app/components/ui/Badge';
 import Button from '@/app/components/ui/Button';
 import Timeline from '@/app/components/ui/Timeline';
 import { detailSteps, mapComplaint } from '@/lib/complaints';
-import { CATEGORIES, SIMILAR_COUNTS } from '@/lib/mock/citizen';
+import { CATEGORIES } from '@/lib/categories';
 import {
   saveDraft,
   useStore,
@@ -17,17 +17,20 @@ import {
   showToast,
 } from '@/lib/store';
 import { api } from '@/lib/api';
-import { getSession, getToken } from '@/lib/session';
+import { getSession, getToken, useSession } from '@/lib/session';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { complaintSchema } from '@/lib/schemas';
 
 const inputBase =
-  'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm leading-[17px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
+  'w-full rounded-lg border bg-surface px-[15px] py-3 text-sm leading-[18px] text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 function FieldShell({ label, htmlFor, error, children }) {
   return (
     <div>
       <label
         htmlFor={htmlFor}
-        className='mb-1.5 block text-xs font-medium leading-[15px] text-ink-2'
+        className='mb-1.5 block text-xs font-medium leading-[16px] text-ink-2'
       >
         {label}
       </label>
@@ -42,74 +45,70 @@ function FieldShell({ label, htmlFor, error, children }) {
 }
 
 function ReportForm({ onCreated }) {
+  const session = useSession();
   const draft = useStore((s) => s.draft);
   const [category, setCategory] = useState(draft?.category || 'Water');
-  const [title, setTitle] = useState(draft?.title || '');
-  const [description, setDescription] = useState(draft?.description || '');
-  const [location, setLocation] = useState(draft?.location || '');
-  const [photos, setPhotos] = useState(draft?.photos || []);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const similar = SIMILAR_COUNTS[category];
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(complaintSchema),
+    defaultValues: {
+      title: draft?.title || '',
+      description: draft?.description || '',
+      location: draft?.location || '',
+    },
+  });
+  const wardLabel = session?.ward
+    ? `Ward ${session.ward}${session?.municipality ? ` \u00b7 ${session.municipality}` : ''}`
+    : 'Your ward';
 
-  function onFiles(e) {
-    const names = Array.from(e.target.files).map((f) => f.name);
-    setPhotos((p) => [...p, ...names].slice(0, 4));
-    e.target.value = '';
-  }
-
-  async function submit(e) {
-    e.preventDefault();
-    const next = {};
-    if (title.trim().length < 5)
-      next.title = 'Give the problem a short title, at least 5 characters.';
-    if (description.trim().length < 20)
-      next.description =
-        'Describe the problem in at least 20 characters so the ward can act on it.';
-    setErrors(next);
-    if (Object.keys(next).length) return;
-
+  async function onValid(v) {
     const token = getToken();
     const wardId = getSession()?.user?.wardId;
     if (!token || !wardId) {
       showToast('Please sign in again to submit a complaint.');
       return;
     }
-
-    setSubmitting(true);
     try {
       const created = await api.createComplaint(token, {
         category,
-        title: title.trim(),
-        description: description.trim(),
-        location: location.trim() || 'My ward',
+        title: v.title.trim(),
+        description: v.description.trim(),
+        location: (v.location || '').trim() || 'My ward',
         wardId,
       });
       const mapped = mapComplaint(created);
       prependComplaint(mapped);
       showToast(`Complaint ${mapped.id} submitted`);
-      setTitle('');
-      setDescription('');
-      setLocation('');
-      setPhotos([]);
+      reset({ title: '', description: '', location: '' });
       setCategory('Water');
       onCreated(mapped.id);
     } catch (err) {
       showToast(err.message || 'Could not submit complaint.');
-    } finally {
-      setSubmitting(false);
     }
   }
 
+  function onSaveDraft() {
+    saveDraft({ category, ...getValues() });
+  }
+
   return (
-    <Card className='self-start p-5'>
-      <form onSubmit={submit} noValidate className='flex flex-col gap-3.5'>
-        <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+    <Card className='self-start p-4 sm:p-5'>
+      <form
+        onSubmit={handleSubmit(onValid)}
+        noValidate
+        className='flex flex-col gap-3.5'
+      >
+        <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
           Report a problem
         </h2>
 
         <fieldset>
-          <legend className='mb-1.5 text-xs font-medium leading-[15px] text-ink-2'>
+          <legend className='mb-1.5 text-xs font-medium leading-[16px] text-ink-2'>
             Category
           </legend>
           <div
@@ -126,7 +125,7 @@ function ReportForm({ onCreated }) {
                   role='radio'
                   aria-checked={on}
                   onClick={() => setCategory(c)}
-                  className={`rounded-full text-[13px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  className={`shrink-0 whitespace-nowrap rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                     on
                       ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
                       : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
@@ -149,17 +148,16 @@ function ReportForm({ onCreated }) {
             <input
               id='ward'
               disabled
-              value='Ward 4 · Kailali Municipality'
+              value={wardLabel}
               className={`${inputBase} border-line-strong bg-surface-alt pl-[39px] text-ink-2`}
             />
           </div>
         </FieldShell>
 
-        <FieldShell label='Title' htmlFor='title' error={errors.title}>
+        <FieldShell label='Title' htmlFor='title' error={errors.title?.message}>
           <input
             id='title'
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            {...register('title')}
             placeholder='No water for 5 days in Ward 4'
             aria-invalid={!!errors.title}
             className={`${inputBase} ${errors.title ? 'border-danger' : 'border-line-strong'}`}
@@ -169,12 +167,11 @@ function ReportForm({ onCreated }) {
         <FieldShell
           label='Describe the problem'
           htmlFor='desc'
-          error={errors.description}
+          error={errors.description?.message}
         >
           <textarea
             id='desc'
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register('description')}
             placeholder='Tap water has not reached the Ward 4 main road for 5 days. Say who is affected and since when.'
             aria-invalid={!!errors.description}
             className={`${inputBase} h-[84px] resize-none leading-5 ${errors.description ? 'border-danger' : 'border-line-strong'}`}
@@ -190,89 +187,160 @@ function ReportForm({ onCreated }) {
             />
             <input
               id='loc'
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              {...register('location')}
               placeholder='Ward 4 main road, near Shiv Mandir'
               className={`${inputBase} border-line-strong pl-[39px]`}
             />
           </div>
         </FieldShell>
 
-        <div>
-          <label
-            className={`flex h-[78px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong bg-surface-alt text-ink-2 transition-colors hover:border-brand hover:text-brand focus-within:outline-2 focus-within:outline-brand ${photos.length >= 4 ? 'pointer-events-none opacity-60' : ''}`}
-          >
-            <Icon name='cam' size={22} />
-            <span className='text-[13px] font-medium leading-4'>
-              Add photos (up to 4)
-            </span>
-            <input
-              type='file'
-              accept='image/*'
-              multiple
-              onChange={onFiles}
-              className='sr-only'
-              disabled={photos.length >= 4}
-            />
-          </label>
-          {photos.length > 0 && (
-            <ul className='mt-2 flex flex-wrap gap-2'>
-              {photos.map((n, i) => (
-                <li
-                  key={n + i}
-                  className='inline-flex items-center gap-1.5 rounded-full bg-muted py-1 pl-3 pr-1.5 text-xs text-ink-2'
-                >
-                  {n}
-                  <button
-                    type='button'
-                    aria-label={`Remove ${n}`}
-                    onClick={() =>
-                      setPhotos((p) => p.filter((_, j) => j !== i))
-                    }
-                    className='grid size-5 place-items-center rounded-full hover:bg-line'
-                  >
-                    <Icon name='close' size={12} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {similar && (
-          <div className='flex gap-3 rounded-[10px] border border-brand/20 bg-brand-tint p-3'>
-            <Icon name='info' size={18} className='mt-0.5 text-brand' />
-            <p className='text-[13px] leading-[17px] text-ink-2'>
-              {similar} similar {category.toLowerCase()} complaints were
-              reported in Ward 4. Yours will be grouped with them so the ward
-              sees the demand.
-            </p>
-          </div>
-        )}
-
-        <div className='flex items-start gap-2.5'>
+        <div className='flex flex-wrap items-center gap-2.5'>
           <Button
             type='submit'
             size='dash'
-            className='flex-1'
-            disabled={submitting}
+            className='min-w-[160px] flex-1'
+            disabled={isSubmitting}
           >
             <Icon name='send' size={16} />
-            {submitting ? 'Submitting…' : 'Submit complaint'}
+            {isSubmitting ? 'Submitting…' : 'Submit complaint'}
           </Button>
           <Button
             type='button'
             variant='secondary'
             size='dash'
-            onClick={() =>
-              saveDraft({ category, title, description, location, photos })
-            }
+            onClick={onSaveDraft}
           >
             Save draft
           </Button>
         </div>
       </form>
     </Card>
+  );
+}
+
+// Edit an own complaint while it is still "Submitted" (before the ward reviews it).
+function EditForm({ complaint, onDone }) {
+  const [category, setCategory] = useState(complaint.category || 'Water');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(complaintSchema),
+    defaultValues: {
+      title: complaint.title || '',
+      description: complaint.description || '',
+      location: complaint.location || '',
+    },
+  });
+
+  async function onValid(v) {
+    const token = getToken();
+    if (!token) {
+      showToast('Please sign in again to edit this complaint.');
+      return;
+    }
+    try {
+      await api.updateComplaint(token, complaint._id, {
+        title: v.title.trim(),
+        description: v.description.trim(),
+        category,
+        location: (v.location || '').trim() || 'My ward',
+      });
+      const list = await api.getMyComplaints(token);
+      if (Array.isArray(list)) setComplaints(list.map(mapComplaint));
+      showToast('Complaint updated');
+      onDone();
+    } catch (err) {
+      showToast(err.message || 'Could not update complaint.');
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit(onValid)}
+      noValidate
+      className='flex flex-col gap-3.5'
+    >
+      <fieldset>
+        <legend className='mb-1.5 text-xs font-medium leading-[16px] text-ink-2'>
+          Category
+        </legend>
+        <div
+          className='flex flex-wrap items-start gap-2'
+          role='radiogroup'
+          aria-label='Category'
+        >
+          {CATEGORIES.map((c) => {
+            const on = c === category;
+            return (
+              <button
+                key={c}
+                type='button'
+                role='radio'
+                aria-checked={on}
+                onClick={() => setCategory(c)}
+                className={`shrink-0 whitespace-nowrap rounded-full text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  on
+                    ? 'border-2 border-brand bg-brand-tint px-4 py-[7px] font-semibold text-brand'
+                    : 'border border-line-strong px-[15px] py-2 font-medium text-ink-2 hover:bg-surface-alt'
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <FieldShell
+        label='Title'
+        htmlFor='edit-title'
+        error={errors.title?.message}
+      >
+        <input
+          id='edit-title'
+          {...register('title')}
+          aria-invalid={!!errors.title}
+          className={`${inputBase} ${errors.title ? 'border-danger' : 'border-line-strong'}`}
+        />
+      </FieldShell>
+
+      <FieldShell
+        label='Describe the problem'
+        htmlFor='edit-desc'
+        error={errors.description?.message}
+      >
+        <textarea
+          id='edit-desc'
+          {...register('description')}
+          aria-invalid={!!errors.description}
+          className={`${inputBase} h-[84px] resize-none leading-5 ${errors.description ? 'border-danger' : 'border-line-strong'}`}
+        />
+      </FieldShell>
+
+      <FieldShell label='Location' htmlFor='edit-loc'>
+        <input
+          id='edit-loc'
+          {...register('location')}
+          className={`${inputBase} border-line-strong`}
+        />
+      </FieldShell>
+
+      <div className='flex flex-wrap items-center gap-2.5'>
+        <Button
+          type='submit'
+          size='dash'
+          className='min-w-[160px] flex-1'
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Saving…' : 'Save changes'}
+        </Button>
+        <Button type='button' variant='secondary' size='dash' onClick={onDone}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -283,6 +351,7 @@ export default function ComplaintsPage() {
     .trim()
     .toLowerCase();
   const [selectedId, setSelectedId] = useState(null);
+  const [editing, setEditing] = useState(false);
 
   // Load this citizen's real complaints; keep mock data if the backend is unreachable
   useEffect(() => {
@@ -303,6 +372,8 @@ export default function ComplaintsPage() {
   );
   const selected = complaints.find((c) => c.id === selectedId) || complaints[0];
   const linked = selected && projects.find((p) => p.id === selected.projectId);
+  // A citizen may edit their own complaint only while it is still submitted.
+  const editable = selected?.status === 'Submitted' && !!selected?._id;
   const open = complaints.filter(
     (c) => !['Resolved', 'Closed'].includes(c.status),
   ).length;
@@ -310,31 +381,31 @@ export default function ComplaintsPage() {
   return (
     <>
       <TopBar crumbs={[{ label: 'Complaints' }]} />
-      <main className='flex flex-col gap-6 p-8'>
-        <div className='py-6'>
-          <h1 className='text-[26px] font-bold leading-[31px] text-ink'>
+      <main className='flex w-full flex-col gap-4 p-4 sm:gap-6 sm:p-6 lg:p-8'>
+        <div className='py-2 sm:py-6'>
+          <h1 className='text-[24px] font-bold leading-[30px] text-ink sm:text-[28px] sm:leading-[33px]'>
             Complaints
           </h1>
-          <p className='mt-1 text-sm leading-[17px] text-ink-3'>
+          <p className='mt-1 text-sm leading-[18px] text-ink-3'>
             Raise a problem with your ward and follow it until it is resolved.
           </p>
         </div>
 
-        <div className='grid items-start gap-6 xl:grid-cols-[520px_minmax(0,1fr)]'>
+        <div className='grid items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(0,440px)_minmax(0,1fr)]'>
           <ReportForm onCreated={setSelectedId} />
 
           <div className='flex flex-col gap-4'>
-            <Card className='p-5'>
-              <div className='mb-1.5 flex items-center justify-between'>
-                <h2 className='text-[17px] font-semibold leading-[22px] text-ink'>
+            <Card className='p-4 sm:p-5'>
+              <div className='mb-1.5 flex flex-wrap items-center justify-between gap-2'>
+                <h2 className='text-[18px] font-semibold leading-[24px] text-ink'>
                   My complaints
                 </h2>
                 <Badge tone='warn'>{open} open</Badge>
               </div>
-              <div role='table' aria-label='My complaints' className='mt-3'>
+              <div role='table' aria-label='My complaints' className='mt-3 overflow-x-auto'>
                 <div
                   role='row'
-                  className='grid grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[11px] font-semibold uppercase leading-[13px] tracking-wider text-ink-3'
+                  className='grid min-w-[360px] grid-cols-[118px_minmax(0,1fr)_118px_70px] gap-2 rounded-lg bg-surface-alt px-2 py-2.5 text-[12px] font-semibold uppercase leading-[14px] tracking-wider text-ink-3'
                 >
                   <span role='columnheader'>Tracking no</span>
                   <span role='columnheader'>Complaint</span>
@@ -351,8 +422,11 @@ export default function ComplaintsPage() {
                           type='button'
                           role='row'
                           aria-selected={on}
-                          onClick={() => setSelectedId(c.id)}
-                          className={`grid grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[13px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
+                          onClick={() => {
+                            setSelectedId(c.id);
+                            setEditing(false);
+                          }}
+                          className={`grid min-w-[360px] grid-cols-[118px_minmax(0,1fr)_118px_70px] items-center gap-2 rounded-lg px-2 py-[10px] text-left text-[14px] leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? 'bg-brand-tint' : 'hover:bg-surface-alt'}`}
                         >
                           <span role='cell' className='font-medium text-brand'>
                             {c.id}
@@ -382,34 +456,60 @@ export default function ComplaintsPage() {
               <Card className='flex flex-col gap-3 p-5'>
                 <div className='flex items-start justify-between gap-3'>
                   <div>
-                    <p className='text-xs leading-[15px] text-ink-3'>
+                    <p className='text-xs leading-[16px] text-ink-3'>
                       {selected.id} · {selected.category}
                     </p>
-                    <h2 className='text-[15px] font-semibold leading-[19px] text-ink'>
+                    <h2 className='text-[16px] font-semibold leading-[21px] text-ink'>
                       {selected.title}
                     </h2>
                   </div>
-                  <StatusBadge status={selected.status} />
-                </div>
-                <Timeline steps={detailSteps(selected)} />
-                {linked && (
-                  <div className='flex items-center gap-3 rounded-[10px] border border-line bg-surface-alt p-[13px]'>
-                    <Icon name='folder' size={18} className='text-brand' />
-                    <div className='min-w-0 flex-1'>
-                      <p className='text-[11px] leading-[13px] text-ink-3'>
-                        Linked project
-                      </p>
-                      <p className='truncate text-[13px] font-semibold leading-4 text-ink'>
-                        {linked.title}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/citizen/projects/${linked.id}`}
-                      className='rounded-lg border border-brand px-[11px] py-1 text-[13px] font-semibold leading-[17px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
-                    >
-                      Open
-                    </Link>
+                  <div className='flex items-center gap-2'>
+                    {editable && !editing && (
+                      <button
+                        type='button'
+                        onClick={() => setEditing(true)}
+                        className='rounded-lg border border-line-strong px-2.5 py-1 text-[13px] font-semibold leading-[18px] text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <StatusBadge status={selected.status} />
                   </div>
+                </div>
+                {editing ? (
+                  <EditForm
+                    complaint={selected}
+                    onDone={() => setEditing(false)}
+                  />
+                ) : (
+                  <>
+                    <Timeline steps={detailSteps(selected)} />
+                    {editable && (
+                      <p className='text-xs leading-[16px] text-ink-3'>
+                        You can edit this complaint until the ward starts
+                        reviewing it.
+                      </p>
+                    )}
+                    {linked && (
+                      <div className='flex items-center gap-3 rounded-[10px] border border-line bg-surface-alt p-[13px]'>
+                        <Icon name='folder' size={18} className='text-brand' />
+                        <div className='min-w-0 flex-1'>
+                          <p className='text-[12px] leading-[14px] text-ink-3'>
+                            Linked project
+                          </p>
+                          <p className='truncate text-[14px] font-semibold leading-4 text-ink'>
+                            {linked.title}
+                          </p>
+                        </div>
+                        <Link
+                          href={`/citizen/projects/${linked.id}`}
+                          className='rounded-lg border border-brand px-[11px] py-1 text-[14px] font-semibold leading-[18px] text-brand hover:bg-brand-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    )}
+                  </>
                 )}
               </Card>
             )}

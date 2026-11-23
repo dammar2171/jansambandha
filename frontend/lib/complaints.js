@@ -47,6 +47,11 @@ const fmtTime = (iso) =>
 export function mapComplaint(c) {
   const status = STATUS_MAP[c.status] || 'Submitted';
   const date = fmtDate(c.createdAt);
+  const created = new Date(c.createdAt).getTime();
+  const age = Number.isNaN(created)
+    ? 0
+    : Math.max(0, Math.floor((Date.now() - created) / 86400000));
+  const by = c.citizenId?.fullName ?? 'Resident';
   const events = [
     { status: 'Submitted', who: 'You', date, time: fmtTime(c.createdAt) },
   ];
@@ -68,6 +73,8 @@ export function mapComplaint(c) {
     location: c.location,
     status,
     date,
+    age,
+    by,
     projectId: null,
     events,
   };

@@ -16,6 +16,7 @@ const router = express.Router();
 
 router.post(
   '/',
+  authMiddleware.protect,
   validate(createProjectProposalSchema),
   projectProposalControllers.createProjectProposal,
 );

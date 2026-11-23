@@ -1,10 +1,18 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut, useSession } from '@/lib/session';
+import { getToken, signOut, useSession } from '@/lib/session';
+import { api } from '@/lib/api';
+import {
+  mapWorkspaceProject,
+  mapSubmissionRow,
+  mapInspectionRecord,
+  mapReviewProposal,
+  mapReviewEvent,
+} from '@/lib/workspace';
 
-const projects = [
+const MOCK_PROJECTS = [
   {
     id: 'PRJ-2083-014',
     name: 'Ward 4 Drinking Water Supply',
@@ -296,20 +304,172 @@ function Field({ label, children }) {
   );
 }
 export default function RoleWorkspace({ role, section }) {
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
+  const [verifyUpdate, setVerifyUpdate] = useState(null);
   const [query, setQuery] = useState(''),
     [filter, setFilter] = useState('All'),
     [modal, setModal] = useState(''),
     [toast, setToast] = useState(''),
     [records, setRecords] = useState(inspections),
     [replies, setReplies] = useState({}),
-    [selected, setSelected] = useState(projects[0]),
+    [selected, setSelected] = useState(MOCK_PROJECTS[0]),
     [submissions, setSubmissions] = useState([]);
+  const [reviewList, setReviewList] = useState([]);
+  const [reviewSel, setReviewSel] = useState(null);
+  const [reviewHistory, setReviewHistory] = useState([]);
   const router = useRouter();
   const session = useSession();
   const signOutNow = () => {
     signOut();
     router.replace('/login');
   };
+
+  // Load real projects this role may see; keep mock data if the backend is
+  // unreachable or returns nothing.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setProjects(list.map(mapWorkspaceProject));
+      })
+      .catch(() => {});
+  }, []);
+
+  // When the department opens the inspection modal, load the selected project's
+  // latest contractor submission so it can be verified.
+  useEffect(() => {
+    if (modal !== 'inspection' || role !== 'department' || !selected?.id)
+      return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProgressUpdates(token, selected.id)
+      .then((list) => {
+        if (!active) return;
+        const arr = Array.isArray(list) ? list : [];
+        setVerifyUpdate(
+          arr.find((u) => u.status === 'SUBMITTED') || arr[0] || null,
+        );
+      })
+      .catch(() => active && setVerifyUpdate(null));
+    return () => {
+      active = false;
+    };
+  }, [modal, selected, role]);
+
+  // Contractor submissions page: load the real submitted progress updates
+  // across the contractor's assigned projects so the history survives reloads.
+  // Only persisted projects (24-char ids) are queried; mock ids are skipped.
+  useEffect(() => {
+    if (role !== 'contractor' || section !== 'submissions') return;
+    const token = getToken();
+    if (!token) return;
+    const real = projects.filter((p) => /^[a-f\d]{24}$/i.test(String(p.id)));
+    if (!real.length) return;
+    let active = true;
+    Promise.all(
+      real.map((p) =>
+        api
+          .getProgressUpdates(token, p.id)
+          .then((list) =>
+            (Array.isArray(list) ? list : []).map((u) => ({
+              at: u.createdAt,
+              row: mapSubmissionRow(u, p),
+            })),
+          )
+          .catch(() => []),
+      ),
+    ).then((chunks) => {
+      if (!active) return;
+      const rows = chunks
+        .flat()
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .map((x) => x.row);
+      if (rows.length) setSubmissions(rows);
+    });
+    return () => {
+      active = false;
+    };
+  }, [role, section, projects]);
+
+  // Department inspection register: load recorded inspections (reported vs
+  // verified progress + quality) across the department's projects so the
+  // register reflects real data. Only persisted projects are queried.
+  useEffect(() => {
+    if (
+      role !== 'department' ||
+      !(section === 'inspections' || section === 'progress-verification')
+    )
+      return;
+    const token = getToken();
+    if (!token) return;
+    const real = projects.filter((p) => /^[a-f\d]{24}$/i.test(String(p.id)));
+    if (!real.length) return;
+    let active = true;
+    Promise.all(
+      real.map((p) =>
+        api
+          .getProgressComparison(token, p.id)
+          .then((rows) =>
+            (Array.isArray(rows) ? rows : [])
+              .filter((r) => r.inspected)
+              .map((r) => ({ at: r.periodTo, rec: mapInspectionRecord(r, p) })),
+          )
+          .catch(() => []),
+      ),
+    ).then((chunks) => {
+      if (!active) return;
+      const recs = chunks
+        .flat()
+        .sort((a, b) => new Date(b.at) - new Date(a.at))
+        .map((x) => x.rec);
+      if (recs.length) setRecords(recs);
+    });
+    return () => {
+      active = false;
+    };
+  }, [role, section, projects]);
+
+  // General Admin project review: load real submitted proposals to review.
+  useEffect(() => {
+    if (role !== 'general-admin' || section !== 'project-review') return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (!active) return;
+        const items = (Array.isArray(list) ? list : []).map(mapReviewProposal);
+        if (items.length) setReviewList(items);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [role, section]);
+
+  // Load the selected proposal's review/decision timeline for the review modal.
+  useEffect(() => {
+    if (!reviewSel?.id) return;
+    const token = getToken();
+    if (!token) return;
+    let active = true;
+    api
+      .getProposalHistory(token, reviewSel.id)
+      .then((list) => {
+        if (!active) return;
+        setReviewHistory((Array.isArray(list) ? list : []).map(mapReviewEvent));
+      })
+      .catch(() => active && setReviewHistory([]));
+    return () => {
+      active = false;
+    };
+  }, [reviewSel]);
   const cfg = configs[role],
     nav = paths[role],
     isDept = role === 'department',
@@ -343,7 +503,7 @@ export default function RoleWorkspace({ role, section }) {
             p.id.toLowerCase().includes(query.toLowerCase())) &&
           (filter === 'All' || p.status === filter),
       ),
-    [query, filter],
+    [projects, query, filter],
   );
   const tableProjects = () => (
     <Panel
@@ -468,32 +628,66 @@ export default function RoleWorkspace({ role, section }) {
       </div>
     </Panel>
   );
+  // Live dashboard metrics, derived from the real projects this role can see.
+  const dashTotal = projects.length;
+  const dashOngoing = projects.filter((p) => p.status === 'Ongoing').length;
+  const dashCompleted = projects.filter((p) => p.status === 'Completed').length;
+  const dashAwaiting = projects.filter(
+    (p) => (p.reported ?? 0) > (p.verified ?? 0),
+  ).length;
+  const dashQualityFlags = projects.filter(
+    (p) => (p.reported ?? 0) - (p.verified ?? 0) >= 15,
+  ).length;
+  const dashAvg = (key) =>
+    dashTotal
+      ? Math.round(projects.reduce((a, p) => a + (p[key] ?? 0), 0) / dashTotal)
+      : 0;
   const dashboard = () => (
     <>
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
         {(isDept
           ? [
-              ['Assigned projects', '12', 'Across 6 wards'],
-              ['Inspections due', '4', 'Require field visit'],
-              ['Awaiting verification', '3', 'Contractor submissions'],
-              ['Quality flags', '2', 'Require follow-up'],
+              [
+                'Assigned projects',
+                String(dashTotal),
+                'Projects you can act on',
+              ],
+              ['Ongoing', String(dashOngoing), 'Currently in progress'],
+              [
+                'Awaiting verification',
+                String(dashAwaiting),
+                'Reported above verified',
+              ],
+              [
+                'Avg verified progress',
+                `${dashAvg('verified')}%`,
+                'Across assigned work',
+              ],
             ]
           : isCon
             ? [
-                ['Active projects', '3', 'Current assignments'],
-                ['Submissions sent', '14', 'This fiscal year'],
-                ['Observations open', '2', 'Action required'],
-                ['Verified progress', '58%', 'Across active work'],
+                ['Active projects', String(dashTotal), 'Current assignments'],
+                [
+                  'Avg reported progress',
+                  `${dashAvg('reported')}%`,
+                  'Across your work',
+                ],
+                [
+                  'Avg verified progress',
+                  `${dashAvg('verified')}%`,
+                  'Confirmed by department',
+                ],
+                ['Completed', String(dashCompleted), 'Delivered projects'],
               ]
             : [
+                ['Projects managed', String(dashTotal), 'Current fiscal year'],
+                ['Ongoing', String(dashOngoing), 'In delivery'],
+                ['Completed', String(dashCompleted), 'Delivered'],
                 [
-                  'Pending project reviews',
-                  '8',
-                  'Awaiting administrative action',
+                  'Quality flags',
+                  String(dashQualityFlags),
+                  'Verified gap \u2265 15 pts',
                 ],
-                ['Projects managed', '26', 'Current fiscal year'],
-                ['Citizen comments', '41', '7 need response'],
-                ['Returned proposals', '3', 'Awaiting resubmission'],
               ]
         ).map((x) => (
           <Metric key={x[0]} label={x[0]} value={x[1]} sub={x[2]} />
@@ -711,6 +905,41 @@ export default function RoleWorkspace({ role, section }) {
       </div>
     </Panel>
   );
+  const reviewPanel = () => (
+    <Panel title='Administrative project review'>
+      <p className='mb-4 text-sm text-slate-500'>
+        Review submitted proposals and record an administrative review note.
+        Final approval remains a CAO-only action.
+      </p>
+      <div className='space-y-3'>
+        {reviewList.map((p) => (
+          <div
+            key={p.id}
+            className='flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between'
+          >
+            <div>
+              <p className='font-semibold'>{p.title}</p>
+              <p className='mt-1 text-sm text-slate-500'>
+                {p.ward} · {money(p.budget)}
+              </p>
+            </div>
+            <div className='flex items-center gap-2'>
+              <Badge>{p.status}</Badge>
+              <Button
+                kind='secondary'
+                onClick={() => {
+                  setReviewHistory([]);
+                  setReviewSel(p);
+                }}
+              >
+                Review
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
   const simplePanel = (heading, sub, rows, actionLabel) => (
     <Panel
       title={heading}
@@ -823,26 +1052,25 @@ export default function RoleWorkspace({ role, section }) {
         {simplePanel(
           'Progress submission history',
           'Submitted progress reports with work stage, expenditure, delay reason and supporting photos.',
-          [
-            ...submissions,
-            ...[
-              [
-                'SUB-2083-014-04',
-                'Ward 4 Drinking Water · 75% · Pipe laying',
-                'Submitted',
+          submissions.length
+            ? submissions
+            : [
+                [
+                  'SUB-2083-014-04',
+                  'Ward 4 Drinking Water · 75% · Pipe laying',
+                  'Submitted',
+                ],
+                [
+                  'SUB-2083-021-03',
+                  'Ward 7 Road · 46% · Base preparation',
+                  'Verified',
+                ],
+                [
+                  'SUB-2083-032-02',
+                  'Health Post · 22% · Structural repair',
+                  'Needs correction',
+                ],
               ],
-              [
-                'SUB-2083-021-03',
-                'Ward 7 Road · 46% · Base preparation',
-                'Verified',
-              ],
-              [
-                'SUB-2083-032-02',
-                'Health Post · 22% · Structural repair',
-                'Needs correction',
-              ],
-            ],
-          ],
           'Submit progress update',
         )}
       </>
@@ -921,28 +1149,30 @@ export default function RoleWorkspace({ role, section }) {
       </Panel>
     );
   else if (section === 'project-review')
-    body = simplePanel(
-      'Administrative project review',
-      'Review submitted proposals, technical remarks, Assembly decision references and delegation authority. This workspace does not replace CAO-only approval.',
-      [
-        [
-          'Ward 4 Drinking Water Supply',
-          'Assembly decision MEA-2083-045 · Technical review: proceed',
-          'Ready for CAO approval',
-        ],
-        [
-          'Ward 7 Internal Road Improvement',
-          'Budget breakdown requires clarification',
-          'Returned',
-        ],
-        [
-          'Community Health Post Renovation',
-          'Awaiting Assembly decision record',
-          'Under review',
-        ],
-      ],
-      '',
-    );
+    body = reviewList.length
+      ? reviewPanel()
+      : simplePanel(
+          'Administrative project review',
+          'Review submitted proposals, technical remarks, Assembly decision references and delegation authority. This workspace does not replace CAO-only approval.',
+          [
+            [
+              'Ward 4 Drinking Water Supply',
+              'Assembly decision MEA-2083-045 · Technical review: proceed',
+              'Ready for CAO approval',
+            ],
+            [
+              'Ward 7 Internal Road Improvement',
+              'Budget breakdown requires clarification',
+              'Returned',
+            ],
+            [
+              'Community Health Post Renovation',
+              'Awaiting Assembly decision record',
+              'Under review',
+            ],
+          ],
+          '',
+        );
   else if (section === 'citizen-comments') body = commentsPanel();
   else if (section === 'reports')
     body = (
@@ -1087,19 +1317,54 @@ export default function RoleWorkspace({ role, section }) {
             </>
           ) : modal === 'submission' && isCon ? (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);
-                setSubmissions((v) => [
-                  [
-                    `SUB-${2083}-${String(100 + v.length)}`,
-                    `${f.get('project')} · ${f.get('progress')}% · ${f.get('stage')}`,
-                    'Submitted',
-                  ],
-                  ...v,
-                ]);
-                setModal('');
-                notify('Progress submission saved in local demo state');
+                const token = getToken();
+                const projectId = f.get('project');
+                const projectName =
+                  projects.find((p) => p.id === projectId)?.name || 'Project';
+                const progress = f.get('progress');
+                const stage = f.get('stage');
+                const summary = String(f.get('summary') || '').trim();
+                if (!token || !projectId) {
+                  notify('Please sign in again to submit a report.');
+                  return;
+                }
+                if (summary.length < 10) {
+                  notify('Work summary must be at least 10 characters.');
+                  return;
+                }
+                const now = new Date();
+                try {
+                  await api.submitProgressUpdate(token, projectId, {
+                    reportedProgress: Number(progress),
+                    workDescription: summary,
+                    periodFrom: new Date(
+                      now.getTime() - 30 * 86400000,
+                    ).toISOString(),
+                    periodTo: now.toISOString(),
+                  });
+                  setSubmissions((v) => [
+                    [
+                      `SUB-${2083}-${String(100 + v.length)}`,
+                      `${projectName} · ${progress}% · ${stage}`,
+                      'Submitted',
+                    ],
+                    ...v,
+                  ]);
+                  setModal('');
+                  notify('Progress report submitted');
+                  api
+                    .getProjects(token)
+                    .then((list) => {
+                      if (Array.isArray(list) && list.length)
+                        setProjects(list.map(mapWorkspaceProject));
+                    })
+                    .catch(() => {});
+                } catch (err) {
+                  notify(err.message || 'Could not submit progress report.');
+                }
               }}
               className='space-y-4'
             >
@@ -1108,8 +1373,10 @@ export default function RoleWorkspace({ role, section }) {
                   name='project'
                   className='w-full rounded-lg border border-slate-200 px-3 py-2'
                 >
-                  {projects.slice(0, 3).map((p) => (
-                    <option key={p.id}>{p.name}</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </Field>
@@ -1166,27 +1433,59 @@ export default function RoleWorkspace({ role, section }) {
             </form>
           ) : modal === 'inspection' ? (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                let f = new FormData(e.currentTarget),
-                  reported = Number(f.get('reported')),
-                  verified = Number(f.get('verified'));
-                setRecords((v) => [
-                  {
-                    id: `INS-${105 + v.length}`,
-                    project: selected.name,
-                    pid: selected.id,
-                    reported,
-                    verified,
-                    gap: reported - verified,
-                    quality: f.get('quality'),
-                    date: '2083-08-14',
-                    observation: f.get('observation'),
-                  },
-                  ...v,
-                ]);
-                setModal('');
-                notify('Inspection recorded in local demo state');
+                const f = new FormData(e.currentTarget);
+                const token = getToken();
+                if (!verifyUpdate) {
+                  notify(
+                    'No contractor submission to verify for this project.',
+                  );
+                  return;
+                }
+                const verified = Number(f.get('verified'));
+                const observations = String(f.get('observation') || '').trim();
+                if (observations.length < 5) {
+                  notify('Observation must be at least 5 characters.');
+                  return;
+                }
+                const QUALITY = {
+                  Satisfactory: 'PASS',
+                  'Needs improvement': 'NEEDS_IMPROVEMENT',
+                  'Non-compliant': 'FAIL',
+                };
+                try {
+                  await api.verifyProgress(token, verifyUpdate._id, {
+                    verifiedProgress: verified,
+                    qualityStatus: QUALITY[f.get('quality')] || 'NOT_ASSESSED',
+                    observations,
+                  });
+                  setRecords((v) => [
+                    {
+                      id: `INS-${105 + v.length}`,
+                      project: selected.name,
+                      pid: selected.id,
+                      reported: verifyUpdate.reportedProgress,
+                      verified,
+                      gap: verifyUpdate.reportedProgress - verified,
+                      quality: f.get('quality'),
+                      date: new Date().toISOString().slice(0, 10),
+                      observation: observations,
+                    },
+                    ...v,
+                  ]);
+                  setModal('');
+                  notify('Progress verified');
+                  api
+                    .getProjects(token)
+                    .then((list) => {
+                      if (Array.isArray(list) && list.length)
+                        setProjects(list.map(mapWorkspaceProject));
+                    })
+                    .catch(() => {});
+                } catch (err) {
+                  notify(err.message || 'Could not verify progress.');
+                }
               }}
               className='space-y-4'
             >
@@ -1208,13 +1507,13 @@ export default function RoleWorkspace({ role, section }) {
               <div className='grid grid-cols-2 gap-3'>
                 <Field label='Contractor reported progress (%)'>
                   <input
-                    name='reported'
-                    type='number'
-                    min='0'
-                    max='100'
-                    defaultValue={selected.reported}
-                    required
-                    className='w-full rounded-lg border border-slate-200 px-3 py-2'
+                    readOnly
+                    value={
+                      verifyUpdate
+                        ? `${verifyUpdate.reportedProgress}%`
+                        : 'No submission yet'
+                    }
+                    className='w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600'
                   />
                 </Field>
                 <Field label='Department verified progress (%)'>
@@ -1223,7 +1522,6 @@ export default function RoleWorkspace({ role, section }) {
                     type='number'
                     min='0'
                     max='100'
-                    defaultValue={selected.verified}
                     required
                     className='w-full rounded-lg border border-slate-200 px-3 py-2'
                   />
@@ -1252,7 +1550,7 @@ export default function RoleWorkspace({ role, section }) {
                 <Button kind='secondary' onClick={() => setModal('')}>
                   Cancel
                 </Button>
-                <Button>Save inspection</Button>
+                <Button disabled={!verifyUpdate}>Verify progress</Button>
               </div>
             </form>
           ) : (
@@ -1277,6 +1575,83 @@ export default function RoleWorkspace({ role, section }) {
               </div>
             </div>
           )}
+        </Modal>
+      )}
+      {reviewSel && (
+        <Modal title='Review proposal' onClose={() => setReviewSel(null)}>
+          <div className='rounded-lg bg-slate-50 p-4 text-sm'>
+            <b>{reviewSel.title}</b>
+            <p className='mt-1 text-slate-500'>
+              {reviewSel.ward} · {money(reviewSel.budget)} · {reviewSel.status}
+            </p>
+          </div>
+          {reviewHistory.length > 0 && (
+            <div className='mt-4'>
+              <h4 className='mb-2 text-sm font-semibold text-slate-700'>
+                Review and decision history
+              </h4>
+              <div className='space-y-2'>
+                {reviewHistory.map((h) => (
+                  <div
+                    key={h.id}
+                    className='rounded-lg border border-slate-200 p-3 text-sm'
+                  >
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='font-medium'>{h.label}</span>
+                      <span className='text-xs text-slate-400'>{h.when}</span>
+                    </div>
+                    {h.remarks && (
+                      <p className='mt-1 text-slate-600'>{h.remarks}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const note = String(new FormData(form).get('note') || '').trim();
+              if (note.length < 1) {
+                notify('Write a review note.');
+                return;
+              }
+              const token = getToken();
+              try {
+                await api.addReview(token, reviewSel.id, note);
+                notify('Review recorded');
+                form.reset();
+                const list = await api.getProposalHistory(token, reviewSel.id);
+                setReviewHistory(
+                  (Array.isArray(list) ? list : []).map(mapReviewEvent),
+                );
+              } catch (err) {
+                notify(err.message || 'Could not record the review.');
+              }
+            }}
+            className='mt-4 space-y-3'
+          >
+            <Field label='Administrative review note'>
+              <textarea
+                name='note'
+                rows='3'
+                required
+                placeholder='Record your administrative remarks for this proposal...'
+                className='w-full rounded-lg border border-slate-200 px-3 py-2'
+              />
+            </Field>
+            <div className='flex justify-end gap-2'>
+              <button
+                type='button'
+                onClick={() => setReviewSel(null)}
+                className='rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50'
+              >
+                Close
+              </button>
+              <Button>Add review</Button>
+            </div>
+          </form>
         </Modal>
       )}
       {toast && (

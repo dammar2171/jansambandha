@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/app/components/ui/Button';
@@ -33,24 +34,28 @@ export default function SignInPage() {
     <div className='grid min-h-screen lg:grid-cols-2'>
       <section className='flex flex-col justify-between bg-brand-deep p-8 text-white lg:p-16'>
         <div className='flex items-center gap-2.5'>
-          <div className='grid h-7 w-7 place-items-center rounded-md bg-brass font-serif text-base font-semibold text-[#0b2545]'>
-            J
-          </div>
+          <Image
+            src='/jansambandha_logo.jpeg'
+            alt='JanSambandha logo'
+            width={28}
+            height={28}
+            className='h-7 w-7 rounded-md bg-white object-contain p-0.5'
+          />
           <div>
-            <p className='font-serif text-lg leading-[22px] font-semibold'>
+            <p className='font-serif text-lg leading-[24px] font-semibold'>
               JanSambandha
             </p>
-            <p className='text-[11px] leading-3.5 text-side-text'>
+            <p className='text-[12px] leading-3.5 text-side-text'>
               Kailali Municipality
             </p>
           </div>
         </div>
 
         <div className='py-12'>
-          <h1 className='max-w-[460px] font-serif text-[40px] leading-[48px] font-semibold'>
+          <h1 className='max-w-[460px] font-serif text-[43px] leading-[52px] font-semibold'>
             Report problems. Follow projects. Give feedback.
           </h1>
-          <p className='mt-4 max-w-[420px] text-base leading-[26px] text-side-text'>
+          <p className='mt-4 max-w-[420px] text-base leading-[28px] text-side-text'>
             See what your ward has proposed, what is being built and how it is
             going, and tell the municipality what you think.
           </p>
@@ -66,7 +71,7 @@ export default function SignInPage() {
           className='flex w-full max-w-[380px] flex-col gap-5'
         >
           <div>
-            <h2 className='font-serif text-[26px] leading-[34px] font-semibold'>
+            <h2 className='font-serif text-[28px] leading-[37px] font-semibold'>
               Sign in
             </h2>
             <p className='mt-1 text-ink-2'>
@@ -97,7 +102,7 @@ export default function SignInPage() {
             {loading ? 'Signing in' : 'Sign in'}
           </Button>
 
-          <p className='text-[13px] text-ink-2'>
+          <p className='text-[14px] text-ink-2'>
             New here?{' '}
             <Link
               href='/register'

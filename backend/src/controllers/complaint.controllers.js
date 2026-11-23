@@ -41,6 +41,18 @@ const updateComplaintStatus = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, 'Complaint updated successfully', data));
 });
 
+const editComplaint = asyncHandler(async (req, res) => {
+  const data = await complaintServices.editComplaint(
+    req.user,
+    req.params.id,
+    req.body,
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, 'Complaint updated successfully', data));
+});
+
 const addComplaintResponse = asyncHandler(async (req, res) => {
   const data = await complaintServices.addComplaintResponse(
     req.user,
@@ -58,5 +70,6 @@ export default {
   listComplaints,
   getComplaintById,
   updateComplaintStatus,
+  editComplaint,
   addComplaintResponse,
 };

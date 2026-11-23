@@ -7,14 +7,14 @@ const VARIANTS = {
   ghost: "text-brand hover:bg-brand-tint",
 };
 const SIZES = {
-  md: "px-4 py-3.5 text-[15px]",
-  sm: "px-3 py-2 text-[13px]",
-  dash: "px-3 py-2.5 text-[13px]",
+  md: "px-4 py-3.5 text-[16px]",
+  sm: "px-3 py-2 text-[14px]",
+  dash: "px-3 py-2.5 text-[14px]",
   xs: "px-2.5 py-1.5 text-xs",
 };
 
 const buttonClassName = (variant, size, className) =>
-  `inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${SIZES[size]} ${className}`;
+  `inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${SIZES[size]} ${className}`;
 
 export default function Button({ variant = "primary", size = "md", className = "", ...props }) {
   return (

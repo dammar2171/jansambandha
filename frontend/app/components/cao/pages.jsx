@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   proposals,
   projects,
@@ -9,6 +9,15 @@ import {
   audit,
   money,
 } from '../../../lib/cao/data';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { getToken } from '@/lib/session';
+import { api } from '@/lib/api';
+import { officialSchema } from '@/lib/schemas';
+import { mapApproval, mapCaoProposal } from '@/lib/cao/proposals';
+import { OFFICIAL_ROLES, mapUser, roleToBackend } from '@/lib/cao/users';
+import { mapCaoProject } from '@/lib/cao/projects';
+import { mapAuditLog } from '@/lib/cao/audit';
 import {
   PageHead,
   Panel,
@@ -23,6 +32,39 @@ import {
 } from './ui';
 
 export function DashboardPage() {
+  const [projectList, setProjectList] = useState([]);
+  const [proposalList, setProposalList] = useState([]);
+
+  // Load real projects and proposals for the overview; fall back to the sample
+  // figures when the backend is unreachable so the dashboard is never blank.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((d) => {
+        if (Array.isArray(d) && d.length) setProjectList(d.map(mapCaoProject));
+      })
+      .catch(() => {});
+    api
+      .getProposals(token)
+      .then((d) => {
+        if (Array.isArray(d) && d.length)
+          setProposalList(d.map(mapCaoProposal));
+      })
+      .catch(() => {});
+  }, []);
+
+  const totalProjects = projectList.length;
+  const awaiting = proposalList.filter(
+    (p) => p.status === 'Awaiting CAO',
+  ).length;
+  const totalBudget = projectList.reduce((a, p) => a + (p.budget || 0), 0);
+  const atRisk = projectList.filter(
+    (p) => p.status === 'Delayed' || p.reported - p.verified >= 15,
+  ).length;
+  const queue = proposalList.length ? proposalList : proposals;
+
   return (
     <>
       <PageHead
@@ -38,26 +80,24 @@ export function DashboardPage() {
       <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
         <Stat
           label='Total projects · FY 2083/84'
-          value='28'
-          change='+4 this month'
-          detail='Across 9 wards'
+          value={totalProjects ? String(totalProjects) : '28'}
+          detail='Across the municipality'
         />
         <Stat
           label='Awaiting administrative action'
-          value='3'
-          change='Needs attention'
-          detail='2 assembly-approved proposals'
+          value={proposalList.length ? String(awaiting) : '3'}
+          change={awaiting ? 'Needs attention' : undefined}
+          detail='Proposals pending a CAO decision'
         />
         <Stat
           label='Approved municipal budget'
-          value='NPR 84.6M'
-          detail='Of NPR 102.4M estimated'
+          value={projectList.length ? money(totalBudget) : 'NPR 84.6M'}
+          detail='Sum of approved project budgets'
         />
         <Stat
           label='Projects with delivery risk'
-          value='4'
-          change='2 high priority'
-          detail='Based on verified progress'
+          value={projectList.length ? String(atRisk) : '4'}
+          detail='Delayed or verified gap \u2265 15 points'
         />
       </div>
       <div className='mt-5 grid gap-5 xl:grid-cols-[1.55fr_1fr]'>
@@ -76,7 +116,7 @@ export function DashboardPage() {
           <Table
             heads={['Project / Ward', 'Priority', 'Budget estimate', 'Status']}
           >
-            {proposals.slice(0, 3).map((p) => (
+            {queue.slice(0, 3).map((p) => (
               <tr key={p.id}>
                 <td className='py-3 pr-4'>
                   <Link
@@ -168,7 +208,7 @@ export function DashboardPage() {
                   <span className='text-slate-500'>{p.verified}% verified</span>
                 </div>
                 <Progress value={p.verified} />
-                <div className='mt-1.5 text-[11px] text-slate-400'>
+                <div className='mt-1.5 text-[12px] text-slate-400'>
                   Contractor reported {p.reported}% · {p.ward}
                 </div>
               </div>
@@ -202,7 +242,7 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
-          <p className='mt-4 text-[11px] text-slate-400'>
+          <p className='mt-4 text-[12px] text-slate-400'>
             Priority score is indicative and uses the proposal weighting model,
             not a substitute for statutory approval.
           </p>
@@ -214,7 +254,22 @@ export function DashboardPage() {
 
 export function ApprovalsPage() {
   const [filter, setFilter] = useState('All');
-  const rows = proposals.filter((p) => filter === 'All' || p.status === filter);
+  const [items, setItems] = useState(proposals);
+
+  // Load real proposals; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProposals(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setItems(list.map(mapCaoProposal));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = items.filter((p) => filter === 'All' || p.status === filter);
   return (
     <>
       <PageHead
@@ -303,10 +358,78 @@ export function ApprovalsPage() {
 }
 
 export function ApprovalDetail({ id }) {
-  const p = proposals.find((x) => x.id === id) || proposals[0];
+  const [p, setP] = useState(null);
+  const [history, setHistory] = useState([]);
   const [modal, setModal] = useState('');
   const [reason, setReason] = useState('');
   const [done, setDone] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const loadHistory = (token) =>
+    api
+      .getProposalHistory(token, id)
+      .then((list) =>
+        setHistory(Array.isArray(list) ? list.map(mapApproval) : []),
+      )
+      .catch(() => {});
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProposal(token, id)
+      .then((data) => setP(mapCaoProposal(data)))
+      .catch(() => {});
+    api
+      .getProposalHistory(token, id)
+      .then((list) =>
+        setHistory(Array.isArray(list) ? list.map(mapApproval) : []),
+      )
+      .catch(() => {});
+  }, [id]);
+
+  async function decide(kind) {
+    const token = getToken();
+    const decision =
+      kind === 'approve'
+        ? 'APPROVED'
+        : kind === 'return'
+          ? 'RETURNED'
+          : 'REJECTED';
+    // The backend requires a reason for every decision; default the approval.
+    const note =
+      reason.trim() || (kind === 'approve' ? 'Administratively approved' : '');
+    if (!note || saving) return;
+    setSaving(true);
+    try {
+      await api.decideProposal(token, id, decision, note);
+      setDone(
+        kind === 'approve'
+          ? 'Administratively approved'
+          : kind === 'return'
+            ? 'Returned'
+            : 'Rejected',
+      );
+      setModal('');
+      setReason('');
+      loadHistory(token);
+    } catch {
+      setModal('');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!p) {
+    return (
+      <PageHead
+        eyebrow='Project approvals / Proposal detail'
+        title='Loading proposal'
+        description={id}
+      />
+    );
+  }
+
   return (
     <>
       <PageHead
@@ -448,16 +571,27 @@ export function ApprovalDetail({ id }) {
                   {p.submitted} · Ward Chairperson
                 </div>
               </div>
-              <div className='border-l-2 border-emerald-300 pl-3'>
-                <b>Technical review completed</b>
-                <div className='mt-1 text-slate-400'>
-                  {p.reviewer} · {p.review}
+              {history.length ? (
+                history.map((h) => (
+                  <div
+                    key={h.id}
+                    className='border-l-2 border-emerald-300 pl-3'
+                  >
+                    <b>{h.label}</b>
+                    <div className='mt-1 text-slate-400'>
+                      {h.when}
+                      {h.remarks ? ` · ${h.remarks}` : ''}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className='border-l-2 border-slate-200 pl-3'>
+                  <b>Administrative action pending</b>
+                  <div className='mt-1 text-slate-400'>
+                    Awaiting CAO decision
+                  </div>
                 </div>
-              </div>
-              <div className='border-l-2 border-slate-200 pl-3'>
-                <b>Administrative action pending</b>
-                <div className='mt-1 text-slate-400'>Awaiting CAO decision</div>
-              </div>
+              )}
             </div>
           </Panel>
         </div>
@@ -497,24 +631,14 @@ export function ApprovalDetail({ id }) {
             <Btn kind='secondary' onClick={() => setModal('')}>
               Cancel
             </Btn>
-            <Btn
-              onClick={() => {
-                if (modal !== 'approve' && !reason.trim()) return;
-                setDone(
-                  modal === 'approve'
-                    ? 'Administratively approved'
-                    : modal === 'return'
-                      ? 'Returned'
-                      : 'Rejected',
-                );
-                setModal('');
-              }}
-            >
-              {modal === 'approve'
-                ? 'Confirm approval'
-                : modal === 'return'
-                  ? 'Return proposal'
-                  : 'Confirm rejection'}
+            <Btn onClick={() => decide(modal)}>
+              {saving
+                ? 'Saving\u2026'
+                : modal === 'approve'
+                  ? 'Confirm approval'
+                  : modal === 'return'
+                    ? 'Return proposal'
+                    : 'Confirm rejection'}
             </Btn>
           </div>
         </Modal>
@@ -526,7 +650,22 @@ export function ApprovalDetail({ id }) {
 export function ProjectsPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('All');
-  const rows = projects.filter(
+  const [items, setItems] = useState(projects);
+
+  // Load real projects; keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getProjects(token)
+      .then((list) => {
+        if (Array.isArray(list) && list.length)
+          setItems(list.map(mapCaoProject));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = items.filter(
     (p) =>
       (status === 'All' || p.status === status) &&
       `${p.title} ${p.id} ${p.ward}`.toLowerCase().includes(q.toLowerCase()),
@@ -625,7 +764,28 @@ export function ProjectsPage() {
   );
 }
 export function ProjectDetail({ id }) {
-  const p = projects.find((x) => x.id === id) || projects[0];
+  const [p, setP] = useState(null);
+
+  // Load the real project so a direct link works.
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !id) return;
+    api
+      .getProject(token, id)
+      .then((data) => setP(mapCaoProject(data)))
+      .catch(() => {});
+  }, [id]);
+
+  if (!p) {
+    return (
+      <PageHead
+        eyebrow='All projects / Project record'
+        title='Loading project'
+        description={id}
+      />
+    );
+  }
+
   return (
     <>
       <PageHead
@@ -744,12 +904,72 @@ export function UsersPage() {
   const [list, setList] = useState(users);
   const [q, setQ] = useState('');
   const { showNotice, Notice } = useNotice();
-  const [form, setForm] = useState({
+  const [wardOptions, setWardOptions] = useState([]);
+  const [deptOptions, setDeptOptions] = useState([]);
+  const DEFAULTS = {
     name: '',
     email: '',
-    role: 'Department',
-    scope: 'Municipality',
+    password: '',
+    role: 'Ward Chair',
+    wardId: '',
+    departmentId: '',
+  };
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(officialSchema),
+    defaultValues: DEFAULTS,
   });
+  const roleLabel = useWatch({ control, name: 'role' });
+
+  async function onCreateOfficial(v) {
+    const token = getToken();
+    const role = roleToBackend[v.role];
+    const body = {
+      fullName: v.name.trim(),
+      email: v.email.trim(),
+      password: v.password,
+      role,
+    };
+    if (role === 'ward') body.wardId = v.wardId;
+    if (role === 'department') body.departmentId = v.departmentId;
+    try {
+      await api.createOfficial(token, body);
+      const data = await api.getUsers(token);
+      if (Array.isArray(data)) setList(data.map(mapUser));
+      setModal(false);
+      reset(DEFAULTS);
+      showNotice('Account created.');
+    } catch (err) {
+      showNotice(err.message || 'Could not create account.');
+    }
+  }
+
+  // Load real accounts plus ward/department options for the create form;
+  // keep mock data if the backend is unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getUsers(token)
+      .then((data) => {
+        if (Array.isArray(data) && data.length) setList(data.map(mapUser));
+      })
+      .catch(() => {});
+    api
+      .getWards()
+      .then((w) => Array.isArray(w) && setWardOptions(w))
+      .catch(() => {});
+    api
+      .getDepartments(token)
+      .then((d) => Array.isArray(d) && setDeptOptions(d))
+      .catch(() => {});
+  }, []);
+
   const filtered = list.filter((u) =>
     `${u.name} ${u.email} ${u.role}`.toLowerCase().includes(q.toLowerCase()),
   );
@@ -783,7 +1003,7 @@ export function UsersPage() {
             'Action',
           ]}
         >
-          {filtered.map((u, i) => (
+          {filtered.map((u) => (
             <tr key={u.email}>
               <td className='py-3'>
                 <b>{u.name}</b>
@@ -799,27 +1019,32 @@ export function UsersPage() {
               </td>
               <td>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const token = getToken();
+                    const next = u.status === 'Active' ? 'SUSPENDED' : 'ACTIVE';
                     const reason = window.prompt(
                       u.status === 'Active'
                         ? 'Reason for suspension'
                         : 'Reason for reactivation',
                     );
                     if (!reason?.trim()) return;
-                    setList((old) =>
-                      old.map((x, j) =>
-                        j === i
-                          ? {
-                              ...x,
-                              status:
-                                x.status === 'Active' ? 'Suspended' : 'Active',
-                            }
-                          : x,
-                      ),
-                    );
-                    showNotice(
-                      'User status updated. A status-history entry should be saved by the API.',
-                    );
+                    try {
+                      await api.setUserStatus(token, u.id, next);
+                      setList((old) =>
+                        old.map((x) =>
+                          x.email === u.email
+                            ? {
+                                ...x,
+                                status:
+                                  next === 'SUSPENDED' ? 'Suspended' : 'Active',
+                              }
+                            : x,
+                        ),
+                      );
+                      showNotice('User status updated.');
+                    } catch (err) {
+                      showNotice(err.message || 'Could not update status.');
+                    }
                   }}
                   className='text-xs font-semibold text-blue-700'
                 >
@@ -869,72 +1094,108 @@ export function UsersPage() {
       </div>
       {modal && (
         <Modal title='Create municipal account' onClose={() => setModal(false)}>
-          <div className='space-y-3'>
-            <Field label='Full name'>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-            <Field label='Email'>
-              <input
-                type='email'
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-            <Field label='Role'>
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+          <form onSubmit={handleSubmit(onCreateOfficial)} noValidate>
+            <div className='space-y-3'>
+              <Field label='Full name'>
+                <input
+                  {...register('name')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.name && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.name.message}
+                  </p>
+                )}
+              </Field>
+              <Field label='Email'>
+                <input
+                  type='email'
+                  {...register('email')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.email && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.email.message}
+                  </p>
+                )}
+              </Field>
+              <Field label='Role'>
+                <select
+                  {...register('role')}
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                >
+                  {OFFICIAL_ROLES.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label='Temporary password'>
+                <input
+                  type='password'
+                  {...register('password')}
+                  placeholder='At least 8 characters'
+                  className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                />
+                {errors.password && (
+                  <p className='mt-1.5 text-xs text-red-700'>
+                    {errors.password.message}
+                  </p>
+                )}
+              </Field>
+              {roleLabel === 'Ward Chair' && (
+                <Field label='Ward'>
+                  <select
+                    {...register('wardId')}
+                    className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                  >
+                    <option value=''>Select a ward</option>
+                    {wardOptions.map((w) => (
+                      <option key={w._id} value={w._id}>
+                        Ward {w.wardNumber} — {w.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.wardId && (
+                    <p className='mt-1.5 text-xs text-red-700'>
+                      {errors.wardId.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+              {roleLabel === 'Department' && (
+                <Field label='Department'>
+                  <select
+                    {...register('departmentId')}
+                    className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
+                  >
+                    <option value=''>Select a department</option>
+                    {deptOptions.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.departmentId && (
+                    <p className='mt-1.5 text-xs text-red-700'>
+                      {errors.departmentId.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+            </div>
+            <div className='mt-5 flex justify-end gap-2'>
+              <Btn
+                kind='secondary'
+                type='button'
+                onClick={() => setModal(false)}
               >
-                {[
-                  'Citizen',
-                  'Ward Chair',
-                  'Department',
-                  'General Admin',
-                  'CAO',
-                  'Contractor',
-                ].map((x) => (
-                  <option>{x}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label='Access scope'>
-              <input
-                value={form.scope}
-                onChange={(e) => setForm({ ...form, scope: e.target.value })}
-                className='w-full rounded-md border border-slate-300 px-3 py-2 text-sm'
-              />
-            </Field>
-          </div>
-          <div className='mt-5 flex justify-end gap-2'>
-            <Btn kind='secondary' onClick={() => setModal(false)}>
-              Cancel
-            </Btn>
-            <Btn
-              onClick={() => {
-                if (!form.name.trim() || !form.email.trim()) return;
-                setList([
-                  ...list,
-                  { ...form, status: 'Active', last: 'Never' },
-                ]);
-                setModal(false);
-                setForm({
-                  name: '',
-                  email: '',
-                  role: 'Department',
-                  scope: 'Municipality',
-                });
-                showNotice('Mock account added to this screen.');
-              }}
-            >
-              Create account
-            </Btn>
-          </div>
+                Cancel
+              </Btn>
+              <Btn type='submit'>
+                {isSubmitting ? 'Creating\u2026' : 'Create account'}
+              </Btn>
+            </div>
+          </form>
         </Modal>
       )}
       <Notice />
@@ -960,15 +1221,15 @@ export function DepartmentsPage() {
             <div className='grid grid-cols-3 gap-3'>
               <div>
                 <div className='text-2xl font-semibold'>{d.staff}</div>
-                <div className='text-[11px] text-slate-400'>Staff</div>
+                <div className='text-[12px] text-slate-400'>Staff</div>
               </div>
               <div>
                 <div className='text-2xl font-semibold'>{d.projects}</div>
-                <div className='text-[11px] text-slate-400'>Projects</div>
+                <div className='text-[12px] text-slate-400'>Projects</div>
               </div>
               <div>
                 <div className='text-2xl font-semibold'>{d.inspections}</div>
-                <div className='text-[11px] text-slate-400'>Inspections</div>
+                <div className='text-[12px] text-slate-400'>Inspections</div>
               </div>
             </div>
             <div className='mt-4 flex justify-between border-t border-slate-100 pt-3 text-xs'>
@@ -1032,7 +1293,7 @@ export function DelegationsPage() {
               <td className='py-4 font-semibold'>{r.id}</td>
               <td>{r.official}</td>
               <td>
-                <code className='text-[11px]'>{r.scope}</code>
+                <code className='text-[12px]'>{r.scope}</code>
               </td>
               <td>{r.from}</td>
               <td>{r.to}</td>
@@ -1294,7 +1555,21 @@ export function ReportsPage() {
 
 export function AuditPage() {
   const [q, setQ] = useState('');
-  const rows = audit.filter((r) =>
+  const [list, setList] = useState(audit);
+
+  // Load the real municipal audit trail; keep the sample if unreachable.
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    api
+      .getAuditLogs(token)
+      .then((data) => {
+        if (Array.isArray(data) && data.length) setList(data.map(mapAuditLog));
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = list.filter((r) =>
     r.join(' ').toLowerCase().includes(q.toLowerCase()),
   );
   return (
@@ -1330,7 +1605,7 @@ export function AuditPage() {
             </tr>
           ))}
         </Table>
-        <div className='mt-4 text-[11px] text-slate-400'>
+        <div className='mt-4 text-[12px] text-slate-400'>
           Audit schema: userId, action, entityType, entityId, oldValue,
           newValue, createdAt.
         </div>

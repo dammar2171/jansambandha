@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Button from '@/app/components/ui/Button';
 import Field from '@/app/components/ui/Field';
 import SelectField from '@/app/components/ui/SelectField';
@@ -10,21 +11,27 @@ import PasswordField from '@/app/components/ui/PasswordField';
 import { signIn } from '@/lib/session';
 import AuthLayout from '@/app/components/auth/AuthLayout';
 import { api, ApiError } from '@/lib/api';
+import { registerSchema } from '@/lib/schemas';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [v, setV] = useState({
-    name: '',
-    email: '',
-    wardId: '',
-    password: '',
-    confirm: '',
-  });
   const [wards, setWards] = useState([]);
-  const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      wardId: '',
+      password: '',
+      confirm: '',
+    },
+  });
 
   useEffect(() => {
     api
@@ -33,26 +40,13 @@ export default function RegisterPage() {
       .catch(() => setWards([]));
   }, []);
 
-  async function onSubmit(e) {
-    e.preventDefault();
+  async function onValid(v) {
     setFormError('');
-    const n = {};
-    if (v.name.trim().length < 2) n.name = 'Enter your full name.';
-    if (!/^\S+@\S+\.\S+$/.test(v.email.trim()))
-      n.email = 'Enter a valid email address.';
-    if (!v.wardId) n.wardId = 'Select your ward.';
-    if (v.password.length < 8) n.password = 'Use at least 8 characters.';
-    if (v.confirm !== v.password) n.confirm = 'Passwords do not match.';
-    setErrors(n);
-    if (Object.keys(n).length) return;
-
     const ward = wards.find((w) => w._id === v.wardId);
     if (!ward) {
-      setErrors({ wardId: 'Select your ward.' });
+      setError('wardId', { message: 'Select your ward.' });
       return;
     }
-
-    setBusy(true);
     try {
       const { user, token } = await api.registerCitizen({
         fullName: v.name.trim(),
@@ -61,11 +55,20 @@ export default function RegisterPage() {
         municipalityId: ward.municipalityId,
         wardId: ward._id,
       });
+      // Pull the municipality name for the UI labels (non-fatal if it fails).
+      let municipality;
+      try {
+        const me = await api.getMe(token);
+        municipality = me?.municipalityId?.name;
+      } catch {
+        /* ignore */
+      }
       signIn(
         {
           role: 'citizen',
           name: user.fullName,
           ward: ward.wardNumber,
+          municipality,
           token,
           user,
         },
@@ -74,22 +77,21 @@ export default function RegisterPage() {
       router.push('/citizen');
     } catch (err) {
       const fe = err instanceof ApiError ? err.details?.fieldErrors : undefined;
-      if (fe) {
-        setErrors({
-          name: fe.fullName?.[0],
-          email: fe.email?.[0],
-          password: fe.password?.[0],
-        });
-      }
+      if (fe?.fullName?.[0]) setError('name', { message: fe.fullName[0] });
+      if (fe?.email?.[0]) setError('email', { message: fe.email[0] });
+      if (fe?.password?.[0]) setError('password', { message: fe.password[0] });
       setFormError(err.message || 'Registration failed.');
-      setBusy(false);
     }
   }
 
   return (
     <AuthLayout>
-      <form onSubmit={onSubmit} noValidate className='flex flex-col gap-5'>
-        <h1 className='text-[30px] font-bold leading-tight text-ink'>
+      <form
+        onSubmit={handleSubmit(onValid)}
+        noValidate
+        className='flex flex-col gap-5'
+      >
+        <h1 className='text-[32px] font-bold leading-tight text-ink'>
           Create a citizen account
         </h1>
         <p className='text-sm text-ink-3'>
@@ -109,24 +111,21 @@ export default function RegisterPage() {
         <Field
           label='Full name'
           autoComplete='name'
-          value={v.name}
-          onChange={set('name')}
-          error={errors.name}
+          {...register('name')}
+          error={errors.name?.message}
         />
         <Field
           label='Email address'
           type='email'
           autoComplete='email'
           placeholder='name@example.com'
-          value={v.email}
-          onChange={set('email')}
-          error={errors.email}
+          {...register('email')}
+          error={errors.email?.message}
         />
         <SelectField
           label='Ward'
-          value={v.wardId}
-          onChange={set('wardId')}
-          error={errors.wardId}
+          {...register('wardId')}
+          error={errors.wardId?.message}
           hint='Select the ward you live in.'
         >
           <option value=''>Select your ward</option>
@@ -139,21 +138,19 @@ export default function RegisterPage() {
         <PasswordField
           label='Password'
           autoComplete='new-password'
-          value={v.password}
-          onChange={set('password')}
-          error={errors.password}
+          {...register('password')}
+          error={errors.password?.message}
         />
         <PasswordField
           label='Confirm password'
           autoComplete='new-password'
-          value={v.confirm}
-          onChange={set('confirm')}
-          error={errors.confirm}
+          {...register('confirm')}
+          error={errors.confirm?.message}
         />
-        <Button type='submit' disabled={busy} className='w-full'>
-          {busy ? 'Creating account…' : 'Create account'}
+        <Button type='submit' disabled={isSubmitting} className='w-full'>
+          {isSubmitting ? 'Creating account…' : 'Create account'}
         </Button>
-        <p className='text-center text-[13px] text-ink-2'>
+        <p className='text-center text-[14px] text-ink-2'>
           Already registered?{' '}
           <Link
             href='/login'

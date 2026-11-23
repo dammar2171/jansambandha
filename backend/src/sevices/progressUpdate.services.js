@@ -1,8 +1,10 @@
 import Project from '../models/Project.js';
 import ProjectUpdate from '../models/ProjectUpadates.js';
 import ProjectInspection from '../models/ProjectInspect.js';
+import ProjectFollow from '../models/ProjectFollow.js';
+import notificationServices from './notification.services.js';
 import { AppError } from '../utils/AppError.js';
-import { ROLES, UPDATE_STATUS } from '../constants/index.js';
+import { ROLES, UPDATE_STATUS, NOTIFICATION_TYPE } from '../constants/index.js';
 
 // Load an update and confirm the caller is the assigned department for its project
 const loadForAssignedDepartment = async (user, updateId) => {
@@ -48,6 +50,22 @@ const verifyProgressUpdate = async (user, updateId, input) => {
   // Mark the update as verified
   update.status = UPDATE_STATUS.VERIFIED;
   await update.save();
+
+  // Tell citizens following this project (fire-and-forget)
+  ProjectFollow.find({ projectId: project._id })
+    .select('userId')
+    .lean()
+    .then((follows) =>
+      notificationServices.notifyMany(
+        follows.map((f) => f.userId),
+        {
+          type: NOTIFICATION_TYPE.PROJECT,
+          message: `Verified progress on "${project.title}" is now ${input.verifiedProgress}%`,
+          link: `/citizen/projects/${project._id}`,
+        },
+      ),
+    )
+    .catch(() => {});
 
   return inspection;
 };

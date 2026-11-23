@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from '@/lib/session';
@@ -32,17 +33,21 @@ export default function CaoShell({ children }) {
     <div className='min-h-screen bg-[#f3f6fa] text-slate-800 md:flex'>
       <aside className='w-full bg-[#102b49] text-white md:fixed md:inset-y-0 md:flex md:w-[248px] md:flex-col'>
         <div className='flex h-[76px] items-center gap-3 border-b border-white/10 px-6'>
-          <div className='grid h-10 w-10 place-items-center rounded-lg bg-white text-[#102b49] text-xl font-bold'>
-            J
-          </div>
+          <Image
+            src='/jansambandha_logo.jpeg'
+            alt='JanSambandha logo'
+            width={40}
+            height={40}
+            className='h-10 w-10 rounded-lg bg-white object-contain p-1'
+          />
           <div>
             <div className='font-semibold tracking-wide'>JanSambandha</div>
-            <div className='text-[11px] text-slate-300'>
+            <div className='text-[12px] text-slate-300'>
               Municipal governance
             </div>
           </div>
         </div>
-        <div className='px-5 pt-6 pb-2 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-400'>
+        <div className='px-5 pt-6 pb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-slate-400'>
           Administration
         </div>
         <nav className='flex gap-1 overflow-x-auto px-3 pb-3 md:block'>
@@ -50,12 +55,12 @@ export default function CaoShell({ children }) {
             <Link
               key={href}
               href={href}
-              className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-[13px] transition ${path === href ? 'bg-[#24496f] text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
+              className={`flex min-w-max items-center gap-3 rounded-md px-3 py-2.5 text-[14px] transition ${path === href ? 'bg-[#24496f] text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
             >
               <span className='w-5 text-center text-base'>{icon}</span>
               {label}
               {href === '/cao/project-approvals' && (
-                <span className='ml-auto rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold text-slate-900'>
+                <span className='ml-auto rounded bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-slate-900'>
                   3
                 </span>
               )}

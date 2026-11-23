@@ -5,7 +5,7 @@ import Card from '@/app/components/ui/Card';
 import { StatusBadge } from '@/app/components/ui/Badge';
 import { ButtonLink } from '@/app/components/ui/Button';
 import ReactionButton from './ReactionButton';
-import { toggleReaction, useStore } from '@/lib/store';
+import { reactToProject, useStore } from '@/lib/store';
 
 export default function ProjectCard({ project: p }) {
   const reaction = useStore((s) => s.reactions[p.id]);
@@ -15,21 +15,21 @@ export default function ProjectCard({ project: p }) {
 
   return (
     <Card className='flex flex-col gap-3 p-[18px]'>
-      <div className='flex items-start justify-between gap-4'>
-        <div>
-          <h3 className='text-base font-semibold leading-[21px] text-ink'>
+      <div className='flex items-start justify-between gap-3'>
+        <div className='min-w-0'>
+          <h3 className='break-words text-base font-semibold leading-[23px] text-ink'>
             {p.title}
           </h3>
-          <p className='mt-0.5 text-[13px] leading-4 text-ink-3'>
+          <p className='mt-0.5 text-[14px] leading-4 text-ink-3'>
             {p.category} · {p.place}
             {p.priority != null ? ` · Priority ${p.priority}/100` : ''}
           </p>
         </div>
-        <StatusBadge status={p.status} className='mt-2' />
+        <StatusBadge status={p.status} className='mt-2 shrink-0' />
       </div>
 
       <div>
-        <div className='mb-1.5 flex items-center justify-between text-xs leading-[15px] text-ink-2'>
+        <div className='mb-1.5 flex flex-wrap items-center justify-between gap-x-2 text-xs leading-[16px] text-ink-2'>
           <span>{p.barNote}</span>
           <span className='font-semibold text-ink'>{p.verified}%</span>
         </div>
@@ -48,33 +48,39 @@ export default function ProjectCard({ project: p }) {
         </div>
       </div>
 
-      <div className='flex items-center justify-between gap-4'>
-        <div className='flex items-center gap-2'>
+      <div className='flex flex-wrap items-center justify-between gap-3 sm:gap-4'>
+        <div className='flex flex-wrap items-center gap-2'>
           <ReactionButton
             kind='up'
             label='Like'
-            count={p.up + (reaction === 'up' ? 1 : 0)}
+            count={
+              p.up - (p.mine === 'up' ? 1 : 0) + (reaction === 'up' ? 1 : 0)
+            }
             active={reaction === 'up'}
-            onClick={() => toggleReaction(p.id, 'up')}
+            onClick={() => reactToProject(p.id, 'up')}
           />
           <ReactionButton
             kind='down'
             label='Dislike'
-            count={p.down + (reaction === 'down' ? 1 : 0)}
+            count={
+              p.down -
+              (p.mine === 'down' ? 1 : 0) +
+              (reaction === 'down' ? 1 : 0)
+            }
             active={reaction === 'down'}
-            onClick={() => toggleReaction(p.id, 'down')}
+            onClick={() => reactToProject(p.id, 'down')}
           />
           <Link
             href={`/citizen/projects/${p.id}`}
             aria-label={`${p.commentCount + added} comments`}
-            className='inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-[13px] font-medium text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
+            className='inline-flex h-[30px] items-center gap-1.5 rounded-full border border-line-strong px-3 text-[14px] font-medium text-ink-2 hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
           >
             <Icon name='msg' size={15} />
             {p.commentCount + added}
           </Link>
         </div>
-        <div className='flex items-center gap-3.5'>
-          <span className='text-[13px] font-medium text-ink'>
+        <div className='flex flex-wrap items-center gap-2 sm:gap-3.5'>
+          <span className='min-w-0 truncate text-[14px] font-medium text-ink'>
             {p.cardBudget}
           </span>
           <ButtonLink
